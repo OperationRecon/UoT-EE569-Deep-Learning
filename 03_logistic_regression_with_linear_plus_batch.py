@@ -5,8 +5,8 @@ from scipy.stats import multivariate_normal
 import time
 
 # Define constants
-CLASS1_SIZE = 700
-CLASS2_SIZE = 700
+CLASS1_SIZE = 300
+CLASS2_SIZE = 300
 N_FEATURES = 2
 N_OUTPUT = 1
 LEARNING_RATE = 0.02
@@ -15,10 +15,10 @@ TEST_SIZE = 0.25
 BATCHES = [1<<i for i in range(int(np.log2(CLASS1_SIZE+CLASS2_SIZE))+1)] # Gives batches in size 1,2,4,8 and so on until sample size
 
 # Define the means and covariances of the two components
-MEAN1 = np.array([3, -2])
-COV1 = np.array([[6, 0], [0, 3]])
+MEAN1 = np.array([1, -1])
+COV1 = np.array([[2, 0], [0, 3]])
 MEAN2 = np.array([-1, 3])
-COV2 = np.array([[2, 0], [0, 8]])
+COV2 = np.array([[2, 0], [0, 1.8]])
 
 # Generate random points from the two components
 X1 = multivariate_normal.rvs(MEAN1, COV1, CLASS1_SIZE)
@@ -82,7 +82,7 @@ for bn,BATCH_SIZE in enumerate(BATCHES):
 
     # Training loop
     epochs = 100
-    learning_rate = 0.001
+    learning_rate = 0.1
 
     # Forward and Backward Pass
     def forward_pass(graph):
@@ -97,7 +97,7 @@ for bn,BATCH_SIZE in enumerate(BATCHES):
     def sgd_update(trainables, learning_rate=1e-2):
         for t in trainables:
             for i in range(len(t.value)):
-                t.value[i] -= learning_rate * np.average(t.gradients[t][0][i])
+                t.value[i] -= learning_rate * np.average(t.gradients[t][i])
 
 
     # Start a measure of the model's excecutrion speed
@@ -106,9 +106,9 @@ for bn,BATCH_SIZE in enumerate(BATCHES):
     for epoch in range(epochs):
         loss_value = 0
         for i in range(0,X_train.shape[0], BATCH_SIZE):
-            x1 = np.vstack(X_train[i:min(X_train.shape[0], i + BATCH_SIZE), 0].reshape(-1,1))
-            x2  = np.vstack(X_train[i:min(X_train.shape[0], i + BATCH_SIZE), 1].reshape(-1, 1))
-            x_node.value = np.hstack((x1,x2,))
+            x1 = X_train[i:min(X_train.shape[0], i + BATCH_SIZE), 0].reshape(1,-1)
+            x2  = X_train[i:min(X_train.shape[0], i + BATCH_SIZE), 1].reshape(1, -1)
+            x_node.value = np.vstack((x1,x2,))
             y_node.value = y_train[i:min(X_train.shape[0], i + BATCH_SIZE)].reshape(1, -1)
 
             forward_pass(graph)
@@ -126,7 +126,7 @@ for bn,BATCH_SIZE in enumerate(BATCHES):
     # Evaluate the model
     correct_predictions = 0
     for i in range(X_test.shape[0]):
-        x_node.value = np.hstack((X_test[i][0].reshape(1, -1),X_test[i][1].reshape(1, -1)))
+        x_node.value = np.vstack((X_test[i][0].reshape(-1, 1),X_test[i][1].reshape(-1, 1)))
         forward_pass(graph)
 
         if round(sigmoid.value[0][0]) == y_test[i]:
@@ -143,7 +143,7 @@ for bn,BATCH_SIZE in enumerate(BATCHES):
     xx, yy = np.meshgrid(np.linspace(x_min, x_max), np.linspace(y_min, y_max))
     Z = []
     for i,j in zip(xx.ravel(),yy.ravel()):
-        x_node.value = np.hstack((np.array([i]).reshape(1, -1), np.array([j]).reshape(1, -1)))
+        x_node.value = np.hstack((np.array([i]), np.array([j])))
         forward_pass(graph)
         Z.append(sigmoid.value)
     Z = np.array(Z).reshape(xx.shape)

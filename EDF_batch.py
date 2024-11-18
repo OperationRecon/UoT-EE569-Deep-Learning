@@ -89,8 +89,8 @@ class Linear(Node):
     def forward(self):
         # Perform forward-pass (addidtion plus multiplication)
         a, x, b = self.inputs
-        mul = np.dot(x.value, a.value)
-        self.value = np.transpose(mul + b.value)
+        mul = np.dot(np.transpose(a.value), x.value)
+        self.value = mul + b.value
 
     def backward(self):
         a, x, b = self.inputs
@@ -100,7 +100,7 @@ class Linear(Node):
 
         # whereas the gradient of a and x follows the chain rule
         self.gradients[x] = self.outputs[0].gradients[self] * a.value
-        self.gradients[a] = np.dot(self.outputs[0].gradients[self], x.value)
+        self.gradients[a] = self.outputs[0].gradients[self] * x.value
 
         
 # Sigmoid Activation Node
@@ -126,8 +126,9 @@ class BCE(Node):
     def forward(self):
         y_true, y_pred = self.inputs
         self.value = np.sum(-y_true.value*np.log(y_pred.value)-(1-y_true.value)*np.log(1-y_pred.value))
+        self.value
 
     def backward(self):
         y_true, y_pred = self.inputs
         self.gradients[y_pred] = (1 / y_true.value.shape[0]) * (y_pred.value - y_true.value)/(y_pred.value*(1-y_pred.value))
-        self.gradients[y_true] = (1 / y_true.value.shape[0]) * (np.log(y_pred.value) - np.log(1-y_pred.value))
+        self.gradients[y_true] = (1 / y_true.value.shape[0]) * np.log(y_pred.value) - np.log(1-y_pred.value)
