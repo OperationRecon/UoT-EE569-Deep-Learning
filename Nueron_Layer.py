@@ -57,12 +57,13 @@ class Computation_Layer(Nueron_Layer):
     def grad_update(self, learning_rate = 0.001):
         for n in self.paramter_nodes:
             
+            # So numpy doesn't like the way the parameter arrays are setup, the try is for the b parameters while the except is for the a parameters.
             try:
                 avg = np.average(n.gradients[n],axis=len(n.gradients[n].shape)-1, keepdims=True)
                 tmp = learning_rate * avg
                 n.value -= tmp
 
-            except:
+            except ValueError: 
                 avg = np.average(n.gradients[n],axis=len(n.gradients[n].shape)-1, keepdims=False)
                 tmp = learning_rate * avg
                 n.value -= tmp
