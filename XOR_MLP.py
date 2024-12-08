@@ -6,15 +6,15 @@ from scipy.stats import multivariate_normal
 import time
 
 # Define constants
-CLASS1_SIZE = 200
-CLASS2_SIZE = 200
+CLASS1_SIZE = 300
+CLASS2_SIZE = 300
 N_FEATURES = 2
 N_OUTPUT = 1
-LEARNING_RATE = 0.8
-EPOCHS = 10000
-TEST_SIZE = 0.25
+LEARNING_RATE = 0.5
+EPOCHS = 8000
+TEST_SIZE = 0.35
 BATCH_SIZE = int((CLASS1_SIZE + CLASS2_SIZE) * TEST_SIZE)
-DEPTH = 4
+DEPTH = 2
 WIDTH = 20
 
 # Define the means and covariances of the two components
@@ -33,7 +33,7 @@ X2 = np.vstack((multivariate_normal.rvs(MEAN2a, COV2a, int(np.floor(CLASS2_SIZE/
 
 # Combine the points and generate labels
 X = np.vstack((X1, X2))
-y = np.hstack((np.zeros(CLASS1_SIZE), np.ones(CLASS2_SIZE)))
+y = np.hstack((np.zeros(CLASS1_SIZE), np.ones(CLASS2_SIZE))).reshape(-1,1)
 
 # Plot the generated data
 plt.scatter(X[:, 0], X[:, 1], c=y)
@@ -66,11 +66,6 @@ accuracies = []
 # Create nodes
 y_node = Input()
 
-def linear_param_builder(w,input_layer_w):
-    # the parameter factory used for the linear function
-    return [Parameter(np.zeros((w,1))), 
-            Parameter(np.random.default_rng().standard_normal(size=(input_layer_w,w))*0.1)]
-
 # Build computation graph
 graph = []
 # build first layer
@@ -78,16 +73,13 @@ input_layer = Input_Layer(N_FEATURES)
 graph.append(input_layer)
 
 # build hidden layers
-# hidden_layer1 = Computation_Layer(input_layer, 20, parameter_factory=linear_param_builder, operation=Linear, activation=Sigmoid)
-# hidden_layer2 = Computation_Layer(hidden_layer1, 20, parameter_factory=linear_param_builder, operation=Linear, activation=Sigmoid)
 for i in range(1,DEPTH+1):
     graph.append(Computation_Layer(graph[i-1],
-                                    WIDTH,
-                                    parameter_factory=linear_param_builder, 
+                                    WIDTH, 
                                     operation=Linear, activation=Sigmoid))
 
 # build output layer
-output_layer = Computation_Layer(graph[-1], N_OUTPUT, Linear, Sigmoid, linear_param_builder)
+output_layer = Computation_Layer(graph[-1], N_OUTPUT, Linear, Sigmoid,)
 
 loss = BCE(y_node, output_layer.nodes[-1])
 

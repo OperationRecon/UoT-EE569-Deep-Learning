@@ -1,6 +1,12 @@
 from EDF_Percpetron import *
 import numpy as np
 
+
+def linear_param_builder(w,input_layer_w):
+    # the parameter factory used for the linear function
+    return [Parameter(np.zeros((w,1))), 
+            Parameter(np.random.default_rng().standard_normal(size=(input_layer_w,w))*0.1)]
+
 class Nueron_Layer:
     # The Nueron Layer base calss that input, and computational nodes are built upon
 
@@ -37,7 +43,7 @@ class Input_Layer(Nueron_Layer):
 class Computation_Layer(Nueron_Layer):
     # computation layers contain a nueron with an operation and activation equations, as well as trainable paramters
     # paramter factory is a function used to generate the parameter vectors according to specified width
-    def __init__(self, input_layer=None, width = 1, operation: Node = Linear, activation: Node = Sigmoid, parameter_factory = None):
+    def __init__(self, input_layer=None, width = 1, operation: Node = Linear, activation: Node = Sigmoid, parameter_factory = linear_param_builder):
         Nueron_Layer.__init__(self, input_layer, width)
         self.paramter_nodes = parameter_factory(self.width, self.input_layer.width)
         self.operation_node = operation(self.paramter_nodes, self.input_layer.nodes[-1])
@@ -67,3 +73,9 @@ class Computation_Layer(Nueron_Layer):
                 avg = np.average(n.gradients[n],axis=len(n.gradients[n].shape)-1, keepdims=False)
                 tmp = learning_rate * avg
                 n.value -= tmp
+
+class Linear_Computation_Layer(Computation_Layer):
+    def __init__(self, input_layer=None, width=1,):
+        Computation_Layer.__init__(self, input_layer, width, Linear, Sigmoid, linear_param_builder)
+    
+    
