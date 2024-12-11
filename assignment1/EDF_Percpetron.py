@@ -133,3 +133,34 @@ class BCE(Node):
         y_true, y_pred = self.inputs
         self.gradients[y_pred] = (1 / y_true.value.shape[0]) * (y_pred.value - y_true.value)/(y_pred.value*(1-y_pred.value))
         self.gradients[y_true] = (1 / y_true.value.shape[0]) * np.log(y_pred.value) - np.log(1-y_pred.value)
+
+class Softmax(Node):
+    def __init__(self, node=None):
+        super().__init__([node])
+
+    def _softamx(self, x):
+        # does the softmax operation, apparently reduceing all entries by the largest one is used to improve stablity.
+        ex = np.exp(x - np.max(x, axis= 0, keepdims=True))
+        return ex / np.sum(ex, axis = 0, keepdims=True)
+    
+    def forward(self):
+        input_value = self.inputs[0].value
+        self.value = self._softamx(input_value)
+    
+    def backward(self):
+        # when coupling the Softmax funtion with a cross-entropy loss function, apprently that causes the gradient to simplify into a much more managable term. here we will use that propertey to our advantage
+        self.gradients[self.inputs[0]] = self.value - self.outputs[0].gradients[self]
+
+class Cross_Entropy(Node):
+    def __init__(self, y_true, y_pred):
+        super().__init__([y_true, y_pred])
+    
+    def forward(self):
+        y_true, y_pred = self.inputs
+        self.value = -np.sum(y_true.value * np.log(y_pred.value))
+    
+    def backward(self):
+        # depending on the softmax coubling drevative simplfication. we simply pass back the true values
+        y_true, y_pred = self.inputs
+        self.gradients[y_true] = y_pred.value
+        self.gradients[y_pred] = y_true.value
