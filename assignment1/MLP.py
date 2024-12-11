@@ -9,7 +9,7 @@ class MLP():
         # initialise atrributes
         self.n_features = n_features
         self.n_outputs = n_outputs
-        self.depth = depth
+        self.depth = depth # Number of Hidden Layers
         self.width = width
         self.graph = []
 
@@ -58,14 +58,17 @@ class MLP():
     def evaluate(self, x_test, y_test, evaluation_function):
         # evaluates the model against a set of test values
         correct_predictions = 0
+        entropy = 0
         for i in range(x_test.shape[0]):
             self.input_layer.value = np.vstack(x_test[i])
             self.forward_pass()
-
+            entropy += (-np.sum(self.output_layer.activation_node.value * np.log(self.output_layer.activation_node.value) ) )
             if evaluation_function(self.output_layer.activation_node.value, y_test[i]):
                 correct_predictions += 1
-
-        return correct_predictions / x_test.shape[0]
+            
+        avg_entropy = entropy / y_test.shape[0]
+        accuracy = correct_predictions / x_test.shape[0]
+        return accuracy, avg_entropy
     
     def forward_pass(self):
         for n in self.graph:

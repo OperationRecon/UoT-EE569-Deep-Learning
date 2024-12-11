@@ -77,5 +77,8 @@ class Computation_Layer(Nueron_Layer):
 class Linear_Computation_Layer(Computation_Layer):
     def __init__(self, input_layer=None, width=1,):
         Computation_Layer.__init__(self, input_layer, width, Linear, Sigmoid, linear_param_builder)
-    
+
+class Linear_Softmax_Computation_Layer(Computation_Layer):
+    def __init__(self, input_layer=None, width=1,):
+        Computation_Layer.__init__(self, input_layer, width, Linear, Softmax, linear_param_builder) 
     

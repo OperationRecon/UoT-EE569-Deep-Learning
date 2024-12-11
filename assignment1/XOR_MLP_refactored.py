@@ -102,7 +102,7 @@ print(f"Size {BATCH_SIZE}, Loss: {losses[-1] / X_train.shape[0]}\n Time: {learn_
 def binary_classifier_evaluator(output_layer_value, test_value):
     return round(output_layer_value[0][0]) == test_value
 
-accuracy = mlp.evaluate(X_test, y_test, binary_classifier_evaluator)
+accuracy,_ = mlp.evaluate(X_test, y_test, binary_classifier_evaluator)
 
 print(f"Accuracy: {accuracy * 100:.3f}%")
 
