@@ -1,0 +1,131 @@
+Depth: 3, Width 64 Learning rate = 0.02
+X_train: (2000, 784)
+X_test:  (100, 784)
+Batch size: 100, Epochs: 1000.
+Loss: 0.1665918998273529, Learning time: 838.9550.
+Test size: 100
+Accuracy: 96.0500%, Average entropy: 0.3069620236895839
+X_train: (4000, 784)
+X_test:  (10000, 784)
+Depth: 3, Width: 64 Learning rate: 0.02
+Batch size: 100, Epochs: 1000.
+Loss: 0.08344912031794338, Learning time: 1474.9261.
+Test size: 10000
+Accuracy: 98.1500%, Average entropy: 0.1389339241206964
+X_train: (8000, 784)
+X_test:  (10000, 784)
+Depth: 3, Width: 64 Learning rate: 0.02
+Batch size: 100, Epochs: 1000.
+Loss: 0.026350860164423465, Learning time: 3265.9534.
+Test size: 10000
+Accuracy: 99.5000%, Average entropy: 0.0525594503468861
+
+X_train: (2000, 784)
+X_test:  (10000, 784)
+Depth: 1, Width: 64 Learning rate: 0.02
+Batch size: 100, Epochs: 1000.
+Loss: 0.09889235988032277, Learning time: 597.1605.
+Test size: 10000
+Accuracy: 97.6500%, Average entropy: 0.1985149422127384
+X_train: (2000, 784)
+X_test:  (10000, 784)
+Depth: 2, Width: 64 Learning rate: 0.02
+Batch size: 100, Epochs: 1000.
+Loss: 0.1245757742052278, Learning time: 742.4057.
+Test size: 10000
+Accuracy: 96.9000%, Average entropy: 0.22577502382175024
+Depth: 3, Width 64 Learning rate = 0.02
+X_train: (2000, 784)
+X_test:  (100, 784)
+Batch size: 100, Epochs: 1000.
+Loss: 0.1665918998273529, Learning time: 838.9550.
+Test size: 100
+Accuracy: 96.0500%, Average entropy: 0.3069620236895839
+
+X_train: (2000, 784)
+X_test:  (10000, 784)
+Depth: 1, Width: 64 Learning rate: 0.08
+Batch size: 150, Epochs: 10.
+Loss: 0.8480102137569667, Learning time: 7.1382.
+Test size: 10000
+Accuracy: 83.4500%, Average entropy: 1.4394609342684206
+
+
+X_train: (60000, 784)
+X_test:  (10000, 784)
+Depth: 1, Width: 64 Learning rate: 0.08
+Batch size: 150, Epochs: 20.
+Loss: 0.2673246152952959, Learning time: 343.4883.
+Test size: 10000
+Accuracy: 91.8133%, Average entropy: 0.33307828830151054
+X_train: (60000, 784)
+X_test:  (10000, 784)
+Depth: 1, Width: 64 Learning rate: 0.12
+Batch size: 150, Epochs: 20.
+Loss: 0.3190129627874147, Learning time: 345.7152.
+Test size: 10000
+Accuracy: 90.4350%, Average entropy: 0.3560357013416869
+X_train: (60000, 784)
+X_test:  (10000, 784)
+Depth: 1, Width: 64 Learning rate: 0.16
+Batch size: 150, Epochs: 20.
+Loss: 0.36724301001490983, Learning time: 426.9179.
+Test size: 10000
+Accuracy: 88.4817%, Average entropy: 0.3973273045537633
+X_train: (60000, 784)
+X_test:  (10000, 784)
+Depth: 1, Width: 64 Learning rate: 0.06
+Batch size: 150, Epochs: 20.
+Loss: 0.2579804191168836, Learning time: 428.3411.
+Test size: 10000
+Accuracy: 92.8717%, Average entropy: 0.3300741430631767
+X_train: (60000, 784)
+X_test:  (10000, 784)
+Depth: 1, Width: 64 Learning rate: 0.04
+Batch size: 150, Epochs: 20.
+Loss: 0.23727478091531862, Learning time: 367.9243.
+Test size: 10000
+Accuracy: 93.1267%, Average entropy: 0.3230737570099767
+X_train: (60000, 784)
+X_test:  (10000, 784)
+Depth: 1, Width: 64 Learning rate: 0.008
+Batch size: 150, Epochs: 20.
+Loss: 0.33448174721605517, Learning time: 424.6233.
+Test size: 10000
+Accuracy: 91.0500%, Average entropy: 0.5232095792730491
+
+X_train: (60000, 784)
+X_test:  (10000, 784)
+Depth: 1, Width: 64 Learning rate: 0.04
+Batch size: 300, Epochs: 20.
+Loss: 0.2511164030223311, Learning time: 340.8889.
+Test size: 10000
+Accuracy: 92.7233%, Average entropy: 0.37591440118822594
+X_train: (60000, 784)
+X_test:  (10000, 784)
+Depth: 2, Width: 16 Learning rate: 0.04
+Batch size: 300, Epochs: 20.
+Loss: 0.7973597323038518, Learning time: 69.0094.
+Test size: 10000
+Accuracy: 80.5750%, Average entropy: 1.1602758859261249
+X_train: (60000, 784)
+X_test:  (10000, 784)
+Depth: 2, Width: 16 Learning rate: 0.04
+Batch size: 300, Epochs: 40.
+Loss: 0.46781245888486794, Learning time: 145.7274.
+Test size: 10000
+Accuracy: 86.9867%, Average entropy: 0.6213290796951195
+X_train: (60000, 784)
+X_test:  (10000, 784)
+Depth: 2, Width: 32 Learning rate: 0.04
+Batch size: 300, Epochs: 40.
+Loss: 0.30243533883238616, Learning time: 365.9347.
+Test size: 10000
+Accuracy: 91.2567%, Average entropy: 0.42175097096592185
+X_train: (60000, 784)
+X_test:  (10000, 784)
+Depth: 1, Width: 32 Learning rate: 0.04
+Batch size: 300, Epochs: 40.
+Loss: 0.2500608060552666, Learning time: 384.6199.
+Test size: 10000
+Accuracy: 92.6200%, Average entropy: 0.34426023146780216
