@@ -129,3 +129,5 @@ Batch size: 300, Epochs: 40.
 Loss: 0.2500608060552666, Learning time: 384.6199.
 Test size: 10000
 Accuracy: 92.6200%, Average entropy: 0.34426023146780216
+X_train: (60000, 784)
+X_test:  (10000, 784)

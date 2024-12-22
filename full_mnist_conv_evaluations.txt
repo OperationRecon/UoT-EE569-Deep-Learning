@@ -1,0 +1,32 @@
+X_train: (60000, 784)
+X_test:  (10000, 784)
+X_train: (60000, 784)
+X_test:  (10000, 784)
+Learning rate: 0.04
+Batch size: 4, Epochs: 8.
+Loss: 2.4171442226369297, Learning time: 1319.9680.
+Learning rate: 0.04
+Batch size: 4, Epochs: 8.
+Loss: 2.4091447008943567, Learning time: 1469.4391.
+Test size: 1000
+Accuracy: 9.9750%, Average entropy: 2.26685455682486
+Learning rate: 0.04
+Batch size: 6000, Epochs: 8.
+Loss: 2.301234470351758, Learning time: 2096.5923.
+Test size: 10000
+Accuracy: 11.2367%, Average entropy: 2.301409266441671
+Learning rate: 0.8
+Batch size: 6000, Epochs: 8.
+Loss: 2.302077304401535, Learning time: 2262.4016.
+Test size: 10000
+Accuracy: 10.4417%, Average entropy: 2.3004260371912824
+Learning rate: 0.08
+Batch size: 600, Epochs: 4.
+Loss: 2.301432670742864, Learning time: 898.6059.
+Test size: 10000
+Accuracy: 10.4417%, Average entropy: 2.301329288927323
+Learning rate: 0.008
+Batch size: 64, Epochs: 4.
+Loss: 2.3016951341946648, Learning time: 786.7803.
+Test size: 10000
+Accuracy: 10.4417%, Average entropy: 2.301369915249154
