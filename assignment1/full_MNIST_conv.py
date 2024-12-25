@@ -32,10 +32,10 @@ for i in range(9):
 # define constants
 N_FEATURES = 1
 N_OUTPUT = 10
-LEARNING_RATE = 0.008
+LEARNING_RATE = 0.001
 EPOCHS = 4
-BATCH_SIZE = 64
-ARCHITECTURE = [(1,8),(1,16),(1,20),(1,32)]
+BATCH_SIZE = 8
+ARCHITECTURE = [(1,16),(2,16),(16,32),(32,64),(64,128)]
 
 
 # evaluation function for "hot-one" outputs
@@ -61,7 +61,7 @@ print('learing...')
 losses, learn_time = cnn.learn(train_X,hot_one_y, EPOCHS, BATCH_SIZE, LEARNING_RATE,print_properties=True)
 
 with open("full_mnist_conv_evaluations.txt", 'a') as f:
-    print(f"Learning rate: {LEARNING_RATE}\nBatch size: {BATCH_SIZE}, Epochs: {EPOCHS}.\nLoss: {losses[-1]}, Learning time: {learn_time:.4f}.", file=f)
+    print(f"Architecture: {ARCHITECTURE}\nLearning rate: {LEARNING_RATE}\nBatch size: {BATCH_SIZE}, Epochs: {EPOCHS}.\nLoss: {losses[-1]}, Learning time: {learn_time:.4f}.", file=f)
 
 print(f"Batch size: {BATCH_SIZE}, Epochs: {EPOCHS}.\nLoss: {losses[-1]}, Learning time: {learn_time:.4f}.",)
 

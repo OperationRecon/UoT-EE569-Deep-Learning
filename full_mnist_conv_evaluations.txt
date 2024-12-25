@@ -30,3 +30,13 @@ Batch size: 64, Epochs: 4.
 Loss: 2.3016951341946648, Learning time: 786.7803.
 Test size: 10000
 Accuracy: 10.4417%, Average entropy: 2.301369915249154
+Learning rate: 0.0006
+Batch size: 64, Epochs: 20.
+Loss: 2.3011940715056465, Learning time: 19186.1236.
+Test size: 10000
+Accuracy: 11.2367%, Average entropy: 2.3012324106662274
+Learning rate: 0.0004
+Batch size: 32, Epochs: 4.
+Loss: 2.294700806509116, Learning time: 823.2540.
+Test size: 10000
+Accuracy: 13.0933%, Average entropy: 2.3016190354144834

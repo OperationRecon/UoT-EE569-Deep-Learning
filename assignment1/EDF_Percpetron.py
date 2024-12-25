@@ -81,6 +81,23 @@ class Addition(Node):
         self.gradients[x] = self.outputs[0].gradients[self]
         self.gradients[y] = self.outputs[0].gradients[self]
 
+class Connector(Node):
+    def __init__(self, node):
+        # Initialize with two inputs x and y
+        Node.__init__(self, [node])
+
+    def forward(self):
+        # Perform element-wise addition
+        node = self.inputs[0]
+        self.value = node.value[:,0,0,:]
+        self.value = self.value.transpose()
+
+    def backward(self):
+        # The gradient of addition with respect to both inputs is the gradient of the output
+        node = self.inputs[0]
+        self.gradients[node] = self.outputs[0].gradients[self][:,np.newaxis,np.newaxis,:]
+        self.gradients[node] = self.gradients[node].transpose()
+
 # Linear equation Node (param[0] * var + param[1])
 class Linear(Node):
     def __init__(self, param, var):
@@ -146,7 +163,6 @@ class Softmax(Node):
     def forward(self):
         input_value = self.inputs[0].value
         self.value = self._softamx(input_value)
-        input_value
     
     def backward(self):
         # when coupling the Softmax funtion with a cross-entropy loss function, apprently that causes the gradient to simplify into a much more managable term. here we will use that propertey to our advantage
@@ -158,6 +174,9 @@ class Cross_Entropy(Node):
     
     def forward(self):
         y_true, y_pred = self.inputs
+
+        # clip for stablity
+        y_pred.value = np.clip(y_pred.value, 1e-8, 1-1e-8)
         self.value = -np.sum(y_true.value * np.log(y_pred.value))
     
     def backward(self):
@@ -165,7 +184,6 @@ class Cross_Entropy(Node):
         y_true, y_pred = self.inputs
         self.gradients[y_true] = y_pred.value
         self.gradients[y_pred] = y_true.value
-
 
 class Conv(Node):
     def __init__(self, param, var):
@@ -183,9 +201,12 @@ class Conv(Node):
         # calculating pad size
         pad = ((height_kernel - 1) // 2, (width_kernel - 1) // 2)
 
-        # padding (code from slides)
-        x_pad = np.zeros((n_batch, height_in + 2 * pad[0], width_in + 2 * pad[1], in_channels))
-        x_pad[:, pad[0]:height_in + pad[0], pad[1]:width_in + pad[1], :] = x.value
+        # padding
+        x_pad = np.pad(
+            array=x.value,  
+            pad_width=((0, 0), (pad[0], pad[0]), (pad[1], pad[1]), (0, 0)),
+            mode='constant'
+        )
 
         # calculate output shape
         height_out = height_in - height_kernel + 1 + pad[0] * 2
@@ -205,10 +226,8 @@ class Conv(Node):
                     x_pad[:, h_start:h_end, w_start:w_end, :, np.newaxis] *
                     a.value[np.newaxis, :, :, :],
                     axis=(1, 2, 3)
-                )
+                ) + b.value
 
-        self.value = self.value + b.value
-        self
 
     def backward(self):
         '''backward pass, self.outputs[0].gradients[self] is the derivative of the loss to this layer.'''
@@ -223,12 +242,18 @@ class Conv(Node):
         # calculating pad size
         pad = ((height_kernel - 1) // 2, (width_kernel - 1) // 2)
 
-        # padding (code from slides)
-        x_pad = np.zeros((n, height_in + 2 * pad[0], width_in + 2 * pad[1], c_out))
-        x_pad[:, pad[0]:height_in + pad[0], pad[1]:width_in + pad[1], :] = x.value
-        self.value = np.zeros_like(x_pad)
+        # padding
+        x_pad = np.pad(
+            array=x.value,  
+            pad_width=((0, 0), (pad[0], pad[0]), (pad[1], pad[1]), (0, 0)),
+            mode='constant'
+        )
 
-        self.gradients[b] = self.outputs[0].gradients[self].sum(axis=(0, 1, 2)) / n
+        dlwtrself = self.outputs[0].gradients[self]
+
+        grad = np.zeros_like(x_pad)
+
+        self.gradients[b] = dlwtrself.sum(axis=(0, 1, 2)) / n
         self.gradients[a] = np.zeros_like(a.value)
 
         for i in range(height_out):
@@ -237,32 +262,31 @@ class Conv(Node):
                 h_end = h_start + height_kernel
                 w_start = j
                 w_end = w_start + width_kernel
-                self.value[:, h_start:h_end, w_start:w_end, :] += np.sum(
+                grad[:, h_start:h_end, w_start:w_end, :] += np.sum(
                     a.value[np.newaxis, :, :, :, :] *
-                    self.outputs[0].gradients[self][:, i:i + 1, j:j + 1, np.newaxis, :],
+                    dlwtrself[:, i:i + 1, j:j + 1, np.newaxis, :],
                     axis=4
                 )
                 self.gradients[a] += np.sum(
                     x_pad[:, h_start:h_end, w_start:w_end, :, np.newaxis] *
-                    self.outputs[0].gradients[self][:, i:i + 1, j:j + 1, np.newaxis, :],
+                    dlwtrself[:, i:i + 1, j:j + 1, np.newaxis, :],
                     axis=0
-                )
+                ) / n
 
-        self.gradients[a] /= n
-
-        self.gradients[x] = self.value[:, pad[0]:pad[0] + height_in, pad[1]:pad[1] + width_in, :]
+        self.gradients[x] = grad[:, pad[0]:pad[0] + height_in, pad[1]:pad[1] + width_in, :]
 class MaxPooling(Node):
     '''Performs 2x2 MaxPooling, reducing the map's width and height by half for each layer'''
     def __init__(self, node=None):
         Node.__init__(self, [node])
+        self._cache = {}
     
     def forward(self):
         x = self.inputs[0].value
         
         # get shapes
         n, height_in, width_in, n_channels = x.shape
-        height_out = 1 + (height_in - 2) // 2
-        width_out = 1 + (width_in - 2) // 2
+        height_out = 1 + (height_in - 1) // 2
+        width_out = 1 + (width_in - 1) // 2
 
         self.value = np.zeros((n, height_out, width_out, n_channels))
 
@@ -273,11 +297,13 @@ class MaxPooling(Node):
                 w_start = j << 1
                 w_end = w_start + 2
                 x_slice = x[:, h_start:h_end, w_start:w_end, :]
+                self._save_mask(x=x_slice, cords=(i, j))
                 self.value[:, i, j, :] = np.max(x_slice, axis=(1, 2))
 
     def backward(self):
         x = self.inputs[0]
         grad = np.zeros_like(x.value)
+        dlwtrself = self.outputs[0].gradients[self]
         
         for i in range(self.value.shape[1]):
             for j in range(self.value.shape[2]):
@@ -286,14 +312,31 @@ class MaxPooling(Node):
                 w_start = j << 1
                 w_end = w_start + 2
                 
-                x_slice = x.value[:, h_start:h_end, w_start:w_end, :]
-                max_slice = np.max(x_slice, axis=(1, 2))
+                grad[:, h_start:h_end, w_start:w_end, :] += \
+                    dlwtrself[:, i:i + 1, j:j + 1, :] * self._cache[(i, j)]
                 
-                # Create mask for the max elements
-                mask = (x_slice == max_slice[:, None, None, :])
-                
-                # Only propagate the gradient to the first element of the 2x2 space that was maxpooled
-                grad[:, h_start, w_start, :] = self.value[:, i, j, :] * mask[:, 0, 0, :]
-        
         # Set gradient of the previous layer to the gradient from the current layer
         self.gradients[x] = grad
+
+    def _save_mask(self, x: np.array, cords) -> None:
+        mask = np.zeros_like(x)
+        n_batch, height, width, channels = x.shape
+        x = x.reshape(n_batch, height * width, channels)
+        idx = np.argmax(x, axis=1)
+
+        n_idx, c_idx = np.indices((n_batch, channels))
+        mask.reshape(n_batch, height * width, channels)[n_idx, idx, c_idx] = 1
+        self._cache[cords] = mask
+
+class ReLU(Node):
+    def __init__(self, node):
+        Node.__init__(self, [node])
+
+    def forward(self): 
+        input_value = self.inputs[0].value 
+        self.value = np.maximum(0, input_value)
+
+    def backward(self): 
+        input_value = self.inputs[0].value 
+        partial = (input_value > 0).astype(np.int16) 
+        self.gradients[self.inputs[0]] = partial * self.outputs[0].gradients[self]
