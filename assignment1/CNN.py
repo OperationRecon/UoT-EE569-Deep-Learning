@@ -49,7 +49,7 @@ class CNN():
             loss_value = 0
             for i in range(0,x_train.shape[0], batch_size):
                 self.input_layer.value = x_train[i:min(i+batch_size, x_train.shape[0]), :, :, :]
-                self.test_node.value = y_train[i:min(i+batch_size, y_train.shape[0]), :,].transpose()
+                self.test_node.value = y_train[i:min(i+batch_size, y_train.shape[0]), :,]
 
                 self.forward_pass()
                 self.backward_pass()

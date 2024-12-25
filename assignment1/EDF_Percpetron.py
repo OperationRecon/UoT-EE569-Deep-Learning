@@ -89,14 +89,12 @@ class Connector(Node):
     def forward(self):
         # Perform element-wise addition
         node = self.inputs[0]
-        self.value = node.value[:,0,0,:]
-        self.value = self.value.transpose()
+        self.value = np.ravel(node.value).reshape(node.value.shape[0], -1)
 
     def backward(self):
         # The gradient of addition with respect to both inputs is the gradient of the output
         node = self.inputs[0]
-        self.gradients[node] = self.outputs[0].gradients[self][:,np.newaxis,np.newaxis,:]
-        self.gradients[node] = self.gradients[node].transpose()
+        self.gradients[node] = self.outputs[0].gradients[self].reshape(node.value.shape)
 
 # Linear equation Node (param[0] * var + param[1])
 class Linear(Node):
@@ -107,19 +105,19 @@ class Linear(Node):
         # Perform forward-pass (addidtion plus multiplication)
         b, a, x = self.inputs
         
-        mul = np.dot(np.transpose(a.value), x.value)
+        mul = np.dot(x.value ,a.value.T)
         self.value = mul + b.value
 
     def backward(self):
         b, a, x = self.inputs
 
         # the gradient of b is the gradient of the output
-        self.gradients[b] = self.outputs[0].gradients[self]
+        self.gradients[b] = np.sum(self.outputs[0].gradients[self], axis=0, keepdims=True) / x.value.shape[0]
 
         # whereas the gradient of a and x follows the chain rule
 
-        self.gradients[x] = np.dot(a.value, self.outputs[0].gradients[self],)
-        self.gradients[a] = self.outputs[0].gradients[self][np.newaxis,:,:] * x.value[:,np.newaxis,:]
+        self.gradients[x] = np.dot(self.outputs[0].gradients[self], a.value) / x.value.shape[0]
+        self.gradients[a] = np.dot(self.outputs[0].gradients[self].T, x.value) / x.value.shape[0]
 
         
 # Sigmoid Activation Node
@@ -157,8 +155,8 @@ class Softmax(Node):
 
     def _softamx(self, x):
         # does the softmax operation, apparently reduceing all entries by the largest one is used to improve stablity.
-        ex = np.exp(x - np.max(x, axis= 0, keepdims=True))
-        return ex / np.sum(ex, axis = 0, keepdims=True)
+        ex = np.exp(x - np.max(x, axis= 1, keepdims=True))
+        return ex / np.sum(ex, axis = 1, keepdims=True)
     
     def forward(self):
         input_value = self.inputs[0].value
@@ -337,6 +335,4 @@ class ReLU(Node):
         self.value = np.maximum(0, input_value)
 
     def backward(self): 
-        input_value = self.inputs[0].value 
-        partial = (input_value > 0).astype(np.int16) 
-        self.gradients[self.inputs[0]] = partial * self.outputs[0].gradients[self]
+        self.gradients[self.inputs[0]] = self.outputs[0].gradients[self] * (self.value > 0)

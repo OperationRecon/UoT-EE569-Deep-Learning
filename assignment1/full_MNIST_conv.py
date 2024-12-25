@@ -48,7 +48,7 @@ hot_one_y[np.arange(train_y.size), train_y] = 1
 
 #re-printing the shapes of the vectors
 print('X_train: ' + str(train_X.shape))
-print('Y_train: ' + str(train_y.shape))
+print('Y_train: ' + str(hot_one_y.shape))
 print('X_test:  '  + str(test_X.shape))
 print('Y_test:  '  + str(test_y.shape))
 

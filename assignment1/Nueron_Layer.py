@@ -4,8 +4,8 @@ import numpy as np
 
 def linear_param_builder(w,input_layer_w):
     # the parameter factory used for the linear function
-    return [Parameter(np.zeros((w,1))), 
-            Parameter(np.random.default_rng().standard_normal(size=(input_layer_w,w))*0.1)]
+    return [Parameter(np.zeros((1,w))), 
+            Parameter(np.random.default_rng().standard_normal(size=(w,input_layer_w))*0.1)]
 
 def conv_param_builder(output_channels, input_channels):
     return[Parameter(np.random.randn((output_channels)) * 0.1), Parameter(np.random.randn(3,3,input_channels,output_channels) * np.sqrt(8/input_channels))]
@@ -64,17 +64,8 @@ class Computation_Layer(Nueron_Layer):
     
     def grad_update(self, learning_rate = 0.001):
         for n in self.paramter_nodes:
-            
-            # So numpy doesn't like the way the parameter arrays are setup, the try is for the b parameters while the except is for the a parameters.
-            try:
-                avg = np.average(n.gradients[n],axis=len(n.gradients[n].shape)-1, keepdims=True)
-                tmp = learning_rate * avg
-                n.value -= tmp
-
-            except ValueError: 
-                avg = np.average(n.gradients[n],axis=len(n.gradients[n].shape)-1, keepdims=False)
-                tmp = learning_rate * avg
-                n.value -= tmp
+            n.gradients[n] = np.clip(n.gradients[n], -1200, 1200)
+            n.value = n.value - n.gradients[n] * learning_rate
 
 class Linear_Computation_Layer(Computation_Layer):
     def __init__(self, input_layer=None, width=1, activation= Sigmoid):
@@ -90,8 +81,3 @@ class Conv_layer(Computation_Layer):
 
         if max_pooling:
             self.nodes.append(MaxPooling(self.nodes[-1]))
-
-    def grad_update(self, learning_rate = 0.001):
-        for n in self.paramter_nodes:
-            n.gradients[n] = np.clip(n.gradients[n], -1200, 1200)
-            n.value = n.value - n.gradients[n] * learning_rate
