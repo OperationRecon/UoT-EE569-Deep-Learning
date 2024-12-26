@@ -39,8 +39,8 @@ class MLP():
         for epoch in range(epochs):
             loss_value = 0
             for i in range(0,x_train.shape[0], batch_size):
-                self.input_layer.value = np.vstack([x[i:min(x_train.shape[0], i + batch_size)] for x in x_train.transpose()])
-                self.test_node.value = np.vstack([x[i:min(y_train.shape[0], i + batch_size)] for x in y_train.transpose()])
+                self.input_layer.value = x_train[i:min(i+batch_size, x_train.shape[0]), :]
+                self.test_node.value = y_train[i:min(i+batch_size, y_train.shape[0]), :,]
 
                 self.forward_pass()
                 self.backward_pass()
@@ -60,7 +60,7 @@ class MLP():
         correct_predictions = 0
         entropy = 0
         for i in range(x_test.shape[0]):
-            self.input_layer.value = np.vstack(x_test[i])
+            self.input_layer.value = x_test[i]
             self.forward_pass()
             entropy += (-np.sum(self.output_layer.activation_node.value * np.log(self.output_layer.activation_node.value) ) )
             if evaluation_function(self.output_layer.activation_node.value, y_test[i]):

@@ -14,6 +14,8 @@ train_X = np.expand_dims(train_X, axis=3)
 test_X = test_X / 255
 test_X = np.expand_dims(test_X, axis=3)
 
+
+
 #printing the shapes of the vectors
 print('X_train: ' + str(train_X.shape))
 print('Y_train: ' + str(train_y.shape))
@@ -32,10 +34,10 @@ for i in range(9):
 # define constants
 N_FEATURES = 1
 N_OUTPUT = 10
-LEARNING_RATE = 0.001
-EPOCHS = 4
-BATCH_SIZE = 8
-ARCHITECTURE = [(1,16),(2,16),(16,32),(32,64),(64,128)]
+LEARNING_RATE = 0.012
+EPOCHS = 5
+BATCH_SIZE = 64
+ARCHITECTURE = [(1,3),(1,16),(1,32),(1,64),(1,128)]
 
 
 # evaluation function for "hot-one" outputs
@@ -65,8 +67,12 @@ with open("full_mnist_conv_evaluations.txt", 'a') as f:
 
 print(f"Batch size: {BATCH_SIZE}, Epochs: {EPOCHS}.\nLoss: {losses[-1]}, Learning time: {learn_time:.4f}.",)
 
+
+
 print('evaluating...')
-accuracy, entropy = cnn.evaluate(train_X, train_y, evaluation_function)
+hot_one_y = np.zeros((test_y.size, test_y.max() + 1))
+hot_one_y[np.arange(test_y.size), test_y] = 1
+accuracy, entropy = cnn.evaluate(train_X, hot_one_y, evaluation_function, BATCH_SIZE*2)
 
 with open("full_mnist_conv_evaluations.txt", 'a') as f:
     print(f"Test size: {test_X.shape[0]}\nAccuracy: {accuracy*100:.4f}%, Average entropy: {entropy}", file=f)

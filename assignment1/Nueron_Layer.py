@@ -4,11 +4,15 @@ import numpy as np
 
 def linear_param_builder(w,input_layer_w):
     # the parameter factory used for the linear function
-    return [Parameter(np.zeros((1,w))), 
-            Parameter(np.random.default_rng().standard_normal(size=(w,input_layer_w))*0.1)]
+    limit = np.sqrt(6 / (input_layer_w + w))
+    return [Parameter(np.zeros((1, w))), 
+            Parameter(np.random.uniform(-limit, limit, size=(w, input_layer_w)))]
 
 def conv_param_builder(output_channels, input_channels):
-    return[Parameter(np.random.randn((output_channels)) * 0.1), Parameter(np.random.randn(3,3,input_channels,output_channels) * np.sqrt(8/input_channels))]
+    stddev = np.sqrt(2 / (3 * 3 * input_channels))
+    return [Parameter(np.zeros((output_channels))), 
+            Parameter(np.random.randn(3, 3, input_channels, output_channels) * stddev)]
+
 class Nueron_Layer:
     # The Nueron Layer base calss that input, and computational nodes are built upon
 
@@ -64,7 +68,6 @@ class Computation_Layer(Nueron_Layer):
     
     def grad_update(self, learning_rate = 0.001):
         for n in self.paramter_nodes:
-            n.gradients[n] = np.clip(n.gradients[n], -1200, 1200)
             n.value = n.value - n.gradients[n] * learning_rate
 
 class Linear_Computation_Layer(Computation_Layer):
@@ -73,11 +76,16 @@ class Linear_Computation_Layer(Computation_Layer):
 
 class Linear_Softmax_Computation_Layer(Computation_Layer):
     def __init__(self, input_layer=None, width=1,):
-        Computation_Layer.__init__(self, input_layer, width, Linear, Softmax, linear_param_builder) 
+        Computation_Layer.__init__(self, input_layer, width, operation=Linear, activation=Softmax, parameter_factory=linear_param_builder) 
     
 class Conv_layer(Computation_Layer):
-    def __init__(self, input_layer=None, output_features=1, max_pooling: bool = True):
-        Computation_Layer.__init__(self, input_layer, output_features, Conv, ReLU, conv_param_builder)
+    def __init__(self, input_layer=None, output_features=1, activation = ReLU, max_pooling: bool = True):
+        Computation_Layer.__init__(self, input_layer, output_features, Conv, activation, conv_param_builder)
 
         if max_pooling:
             self.nodes.append(MaxPooling(self.nodes[-1]))
+
+    def grad_update(self, learning_rate = 0.001):
+        for n in self.paramter_nodes:
+            n.gradients[n] = np.clip(n.gradients[n], -1000, 1000)
+            n.value = (n.value - n.gradients[n] * learning_rate)

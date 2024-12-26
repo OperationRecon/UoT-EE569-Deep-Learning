@@ -135,3 +135,16 @@ X_train: (60000, 784)
 X_test:  (10000, 784)
 X_train: (60000, 784)
 X_test:  (10000, 784)
+X_train: (60000, 784)
+X_test:  (10000, 784)
+X_train: (60000, 784)
+X_test:  (10000, 784)
+X_train: (60000, 784)
+X_test:  (10000, 784)
+Depth: 1, Width: 32 Learning rate: 0.04
+Batch size: 300, Epochs: 40.
+Loss: 0.835680699189783, Learning time: 16.9760.
+X_train: (60000, 784)
+X_test:  (10000, 784)
+X_train: (60000, 784)
+X_test:  (10000, 784)

@@ -81,20 +81,30 @@ class Addition(Node):
         self.gradients[x] = self.outputs[0].gradients[self]
         self.gradients[y] = self.outputs[0].gradients[self]
 
-class Connector(Node):
+class Flattener(Node):
     def __init__(self, node):
-        # Initialize with two inputs x and y
         Node.__init__(self, [node])
 
     def forward(self):
-        # Perform element-wise addition
         node = self.inputs[0]
-        self.value = np.ravel(node.value).reshape(node.value.shape[0], -1)
+        self.value = np.ravel(node.value).reshape(node.value.shape[0], -1) / node.value.max()
 
     def backward(self):
-        # The gradient of addition with respect to both inputs is the gradient of the output
         node = self.inputs[0]
         self.gradients[node] = self.outputs[0].gradients[self].reshape(node.value.shape)
+
+class Connector(Node):
+    def __init__(self, node):
+        Node.__init__(self, [node])
+
+    def forward(self):
+        node = self.inputs[0]
+        self.value = node.value
+
+    def backward(self):
+        node = self.inputs[0]
+        self.gradients[node] = self.outputs[0].gradients[self]
+
 
 # Linear equation Node (param[0] * var + param[1])
 class Linear(Node):
@@ -164,24 +174,29 @@ class Softmax(Node):
     
     def backward(self):
         # when coupling the Softmax funtion with a cross-entropy loss function, apprently that causes the gradient to simplify into a much more managable term. here we will use that propertey to our advantage
-        self.gradients[self.inputs[0]] = self.value - self.outputs[0].gradients[self]
+        self.gradients[self.inputs[0]] = self.outputs[0].gradients[self]
 
 class Cross_Entropy(Node):
+    """
+    Multi-class Cross Entropy
+    """
     def __init__(self, y_true, y_pred):
-        super().__init__([y_true, y_pred])
-    
+        Node.__init__(self, [y_true, y_pred])
+
     def forward(self):
         y_true, y_pred = self.inputs
+        # Clip predicted valuess
+        eps = 1e-15
+        p_clipped = np.clip(y_pred.value, eps, 1 - eps)
 
-        # clip for stablity
-        y_pred.value = np.clip(y_pred.value, 1e-8, 1-1e-8)
-        self.value = -np.sum(y_true.value * np.log(y_pred.value))
-    
+        # Cross Entropy
+        self.value = -np.sum(y_true.value * np.log(p_clipped))
+
     def backward(self):
-        # depending on the softmax coubling drevative simplfication. we simply pass back the true values
         y_true, y_pred = self.inputs
-        self.gradients[y_true] = y_pred.value
-        self.gradients[y_pred] = y_true.value
+
+        self.gradients[y_pred] = (y_pred.value - y_true.value)
+        self.gradients[y_true] = 0
 
 class Conv(Node):
     def __init__(self, param, var):
@@ -220,13 +235,13 @@ class Conv(Node):
                 w_start = j
                 w_end = w_start + width_kernel
 
-                self.value[:, i, j, :] = np.sum(
-                    x_pad[:, h_start:h_end, w_start:w_end, :, np.newaxis] *
-                    a.value[np.newaxis, :, :, :],
-                    axis=(1, 2, 3)
-                ) + b.value
-
-
+                self.value[:, i, j, :] = np.tensordot(
+                    x_pad[:, h_start:h_end, w_start:w_end, :],
+                    a.value,
+                    axes=([1, 2, 3], [0, 1, 2])
+                )
+                
+        self.value = (self.value + b.value)
     def backward(self):
         '''backward pass, self.outputs[0].gradients[self] is the derivative of the loss to this layer.'''
 
@@ -235,7 +250,7 @@ class Conv(Node):
         # get shape for the gradient of input x
         _, height_out, width_out, _ = self.outputs[0].gradients[self].shape
         n, height_in, width_in, c_out = x.value.shape
-        height_kernel, width_kernel, _, n_kernel = a.value.shape
+        height_kernel, width_kernel, in_channels, n_kernel = a.value.shape
 
         # calculating pad size
         pad = ((height_kernel - 1) // 2, (width_kernel - 1) // 2)
@@ -251,7 +266,7 @@ class Conv(Node):
 
         grad = np.zeros_like(x_pad)
 
-        self.gradients[b] = dlwtrself.sum(axis=(0, 1, 2)) / n
+        self.gradients[b] = np.sum(dlwtrself, axis=(0, 1, 2)) / n
         self.gradients[a] = np.zeros_like(a.value)
 
         for i in range(height_out):
@@ -260,19 +275,22 @@ class Conv(Node):
                 h_end = h_start + height_kernel
                 w_start = j
                 w_end = w_start + width_kernel
-                grad[:, h_start:h_end, w_start:w_end, :] += np.sum(
-                    a.value[np.newaxis, :, :, :, :] *
-                    dlwtrself[:, i:i + 1, j:j + 1, np.newaxis, :],
-                    axis=4
-                )
-                self.gradients[a] += np.sum(
-                    x_pad[:, h_start:h_end, w_start:w_end, :, np.newaxis] *
-                    dlwtrself[:, i:i + 1, j:j + 1, np.newaxis, :],
-                    axis=0
-                ) / n
 
-        self.gradients[x] = grad[:, pad[0]:pad[0] + height_in, pad[1]:pad[1] + width_in, :]
-class MaxPooling(Node):
+                grad[:, h_start:h_end, w_start:w_end, :] += np.tensordot(
+                    dlwtrself[:, i:i + 1, j:j + 1, :],
+                    a.value,
+                    axes=([3], [3])
+                ).reshape(n, height_kernel, width_kernel, in_channels)
+                
+                self.gradients[a] += np.tensordot(
+                    x_pad[:, h_start:h_end, w_start:w_end, :],
+                    dlwtrself[:, i:i + 1, j:j + 1, :],
+                    axes=([0], [0])
+                ).reshape(height_kernel, width_kernel, in_channels, n_kernel) / (n)
+
+        self.gradients[x] = grad[:, pad[0]:pad[0] + height_in, pad[1]:pad[1] + width_in, :]        
+
+class MaxPooling(Node):            
     '''Performs 2x2 MaxPooling, reducing the map's width and height by half for each layer'''
     def __init__(self, node=None):
         Node.__init__(self, [node])
@@ -305,9 +323,9 @@ class MaxPooling(Node):
         
         for i in range(self.value.shape[1]):
             for j in range(self.value.shape[2]):
-                h_start = i << 1
+                h_start = i * 2
                 h_end = h_start + 2
-                w_start = j << 1
+                w_start = j * 2
                 w_end = w_start + 2
                 
                 grad[:, h_start:h_end, w_start:w_end, :] += \
@@ -332,7 +350,8 @@ class ReLU(Node):
 
     def forward(self): 
         input_value = self.inputs[0].value 
-        self.value = np.maximum(0, input_value)
+        self.value = np.maximum(0.02 * input_value, input_value)
 
     def backward(self): 
-        self.gradients[self.inputs[0]] = self.outputs[0].gradients[self] * (self.value > 0)
+        output_gradient = self.outputs[0].gradients[self]
+        self.gradients[self.inputs[0]] = output_gradient

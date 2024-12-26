@@ -1,7 +1,7 @@
 import time
 import numpy as np
-from EDF_Percpetron import Connector, Parameter
-from Nueron_Layer import Input_Layer, Conv_layer, Linear_Softmax_Computation_Layer, Cross_Entropy
+from EDF_Percpetron import ReLU, Flattener
+from Nueron_Layer import Input_Layer, Conv_layer, Linear_Softmax_Computation_Layer, Cross_Entropy, Linear_Computation_Layer
 
 class CNN():
     ''' Combines all convulutional functionality into one class to reduce code clutter '''
@@ -28,8 +28,9 @@ class CNN():
 
         self.graph.append(Conv_layer(self.graph[-1], self.architecture[-1][1], max_pooling=True))
 
-        self.graph[-1].nodes.append(Connector(self.graph[-1].nodes[-1]))
+        self.graph[-1].nodes.append(Flattener(self.graph[-1].nodes[-1]))
 
+        self.graph.append(Linear_Computation_Layer(self.graph[-1], self.architecture[-1][1], ReLU))
         # build output layer
         self.output_layer = Linear_Softmax_Computation_Layer(self.graph[-1], self.n_outputs)
         self.test_node = test_node
@@ -66,16 +67,21 @@ class CNN():
         if print_properties: print(f"Size {batch_size}, Loss: {loss_value / x_train.shape[0]}\n Time: {(end - start):.4f} seconds")
         return losses, end-start
 
-    def evaluate(self, x_test, y_test, evaluation_function):
+    def evaluate(self, x_test, y_test, evaluation_function, batch_size = 32):
         # evaluates the model against a set of test values
         correct_predictions = 0
         entropy = 0
-        for i in range(x_test.shape[0]):
-            self.input_layer.value = x_test[i][np.newaxis,:,:,:]
+
+        # rather than use one test value at a time, use a batch.
+        for i in range(0,x_test.shape[0], batch_size):
+            self.input_layer.value =  x_test[i:min(i+batch_size, x_test.shape[0]), :, :, :]
+            self.test_node.value =  y_test[i:min(i+batch_size, y_test.shape[0]), :,]
             self.forward_pass()
             entropy += (-np.sum(self.output_layer.activation_node.value * np.log(self.output_layer.activation_node.value) ) )
-            if evaluation_function(self.output_layer.activation_node.value, y_test[i]):
-                correct_predictions += 1
+            
+            # Compare the largest value of each batch item to the corresponding hot_one value in test_y
+            predictions = np.argmax(self.output_layer.activation_node.value, axis=1)
+            correct_predictions += np.sum(predictions == np.argmax(y_test[i:min(i + batch_size, y_test.shape[0])], axis=1))
             
         avg_entropy = entropy / y_test.shape[0]
         accuracy = correct_predictions / x_test.shape[0]
@@ -92,7 +98,4 @@ class CNN():
     # SGD Update
     def sgd_update(self, learning_rate=1e-2, progress=0):
         for t in self.trainable:
-            if t == self.output_layer:
-                    t.grad_update(learning_rate / (1 + 0.2e-5 * progress))
-            else:
-                t.grad_update(learning_rate * 0.08 / (1 + 0.2e-3 * progress))
+            t.grad_update(learning_rate / (1 + 0.2e-5 * progress))
