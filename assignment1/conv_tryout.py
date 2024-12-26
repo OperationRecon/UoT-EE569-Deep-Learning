@@ -1,19 +1,19 @@
 from EDF_Percpetron import *
-import numpy as np
+# given
+w = np.random.rand(3, 3, 3, 16)
+b = np.random.rand(16)
+activation = np.random.rand(16, 11, 11, 3)
+padding = 'valid'
 
+w_n = Parameter(w)
+b_n = Parameter(b)
+inp = Input()
+inp.value = activation
+# when
+node = Conv(param=[b_n, w_n], var=inp)
+node.forward()
+result = node.value
 
-x = np.array([1,2,2,1,0,1,1,2,3,2,1,0,0,3,1,2,0,2]).reshape(-1,3,3,1)
-
-a = Parameter(np.array([-0.5,1,-2,0.25,0,-1,2,0.123,2]).reshape(3,3,1,1))
-
-b = Parameter(np.array([1]))
-
-i = Input()
-
-c = Conv([b,a],i)
-
-i.value = x
-
-c.forward()
-
-c.value
+assert result.shape == (16, 11, 11, 16)
+expected_val = np.sum(w[:, :, :, 0] * activation[0, 0:3, 0:3, :]) + b[0]
+assert abs(expected_val - result[0, 1, 1, 0]) < 1e-8
