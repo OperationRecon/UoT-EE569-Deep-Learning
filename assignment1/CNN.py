@@ -41,37 +41,48 @@ class CNN():
         # Create graph outside the training loop
         self.trainable = self.graph[1:-1]
     
-    def learn(self, x_train, y_train, epochs, batch_size, learning_rate, print_properties = False):
+    def learn(self, x_train, y_train, epochs, batch_size, learning_rate, learning_decay_rate= 10, print_properties = False):
         # add values for model property recording
         start = time.time()
         losses = []
 
         for epoch in range(epochs):
+            last_iter_loss = 1e265
             loss_value = 0
+            divergence = False
             for i in range(0,x_train.shape[0], batch_size):
                 self.input_layer.value = x_train[i:min(i+batch_size, x_train.shape[0]), :, :, :]
                 self.test_node.value = y_train[i:min(i+batch_size, y_train.shape[0]), :,]
 
                 self.forward_pass()
                 self.backward_pass()
-                progress = (i + x_train.shape[0] * epoch)
-                self.sgd_update(learning_rate, progress)
+                self.sgd_update(learning_rate / (1 + learning_decay_rate * ((epoch / epochs) ** 2)))
 
                 loss_value += self.loss.value
                 if print_properties: print(f"\r progress: {i+x_train.shape[0]*epoch}/{x_train.shape[0]*epochs} loss:{self.loss.value/batch_size}", end='', flush=True)
 
-            if print_properties: print(f'\nEpoch: {epoch + 1}, loss: {loss_value / x_train.shape[0]}')
+                # check and break code at divergence
+                if  ((self.loss.value / last_iter_loss) > 2 + 1/last_iter_loss):
+                    if print_properties: print("\nDivergence Detected, reducing learing rate")
+                    learning_decay_rate *= 1.2
+                
+                last_iter_loss = self.loss.value
+            
+            if print_properties and not divergence: print(f'\nEpoch: {epoch + 1}, loss: {loss_value / x_train.shape[0]}')
             losses.append(loss_value / x_train.shape[0])
+
+            # ensure that the model is infact learning
+            if (epoch >= 5) and (losses[-1] > np.average(losses[max(0, len(losses)-4): -1]) * (1 + 1e-5)):
+                print("\nModel is not leraning, stopping learing process")
 
         end = time.time()
         if print_properties: print(f"Size {batch_size}, Loss: {loss_value / x_train.shape[0]}\n Time: {(end - start):.4f} seconds")
         return losses, end-start
 
-    def evaluate(self, x_test, y_test, evaluation_function, batch_size = 32):
+    def evaluate(self, x_test, y_test, batch_size = 32):
         # evaluates the model against a set of test values
         correct_predictions = 0
         entropy = 0
-
         # rather than use one test value at a time, use a batch.
         for i in range(0,x_test.shape[0], batch_size):
             self.input_layer.value =  x_test[i:min(i+batch_size, x_test.shape[0]), :, :, :]
@@ -96,6 +107,6 @@ class CNN():
             n.backward()
 
     # SGD Update
-    def sgd_update(self, learning_rate=1e-2, progress=0):
+    def sgd_update(self, learning_rate=1e-2,):
         for t in self.trainable:
-            t.grad_update(learning_rate / (1 + 0.2e-5 * progress))
+            t.grad_update(learning_rate)

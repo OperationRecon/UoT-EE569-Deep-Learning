@@ -4,12 +4,11 @@ import numpy as np
 
 def linear_param_builder(w,input_layer_w):
     # the parameter factory used for the linear function
-    limit = np.sqrt(6 / (input_layer_w + w))
     return [Parameter(np.zeros((1, w))), 
-            Parameter(np.random.uniform(-limit, limit, size=(w, input_layer_w)))]
+            Parameter(np.random.randn(w, input_layer_w) * 0.1)]
 
 def conv_param_builder(output_channels, input_channels):
-    stddev = np.sqrt(2 / (3 * 3 * input_channels))
+    stddev = np.sqrt(0.5 / (input_channels))
     return [Parameter(np.zeros((output_channels))), 
             Parameter(np.random.randn(3, 3, input_channels, output_channels) * stddev)]
 
@@ -87,5 +86,5 @@ class Conv_layer(Computation_Layer):
 
     def grad_update(self, learning_rate = 0.001):
         for n in self.paramter_nodes:
-            n.gradients[n] = np.clip(n.gradients[n], -1000, 1000)
+            n.gradients[n] = np.clip(n.gradients[n], -10, 100)
             n.value = (n.value - n.gradients[n] * learning_rate)

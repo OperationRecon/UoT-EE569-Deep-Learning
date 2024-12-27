@@ -350,7 +350,7 @@ class ReLU(Node):
 
     def forward(self): 
         input_value = self.inputs[0].value 
-        self.value = np.maximum(0.02 * input_value, input_value)
+        self.value = np.maximum(0, input_value)
 
     def backward(self): 
         output_gradient = self.outputs[0].gradients[self]

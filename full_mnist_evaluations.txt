@@ -148,3 +148,21 @@ X_train: (60000, 784)
 X_test:  (10000, 784)
 X_train: (60000, 784)
 X_test:  (10000, 784)
+X_train: (60000, 784)
+X_test:  (10000, 784)
+X_train: (60000, 784)
+X_test:  (10000, 784)
+Depth: 1, Width: 32 Learning rate: 0.04
+Batch size: 300, Epochs: 40.
+Loss: 0.8568856271475402, Learning time: 17.7892.
+Test size: 10000
+Accuracy: 72.3267%, Average entropy: 0.9563233164371874
+X_train: (60000, 784)
+X_test:  (10000, 784)
+X_train: (60000, 784)
+X_test:  (10000, 784)
+Depth: 1, Width: 32 Learning rate: 0.04
+Batch size: 300, Epochs: 40.
+Loss: 0.8131061754444635, Learning time: 17.4185.
+Test size: 10000
+Accuracy: 73.7700%, Average entropy: 0.9050235126663567

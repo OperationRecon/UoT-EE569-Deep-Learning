@@ -50,6 +50,28 @@ This file contains the script to load the MNIST dataset, preprocess the data, de
 - **Training the MLP**: Trains the MLP on the training data and logs the loss and learning time.
 - **Evaluating the MLP**: Evaluates the MLP on the test data and logs the accuracy and average entropy.
 
+## 5. Observations from `full_MNIST_evaluations.txt`
+
+The accuracy of the model varies with different hyperparameters such as depth, width, learning rate, batch size, and epochs. Here are some observations:
+
+- **Depth and Width**:
+  - Increasing the depth generally improves accuracy. For example, with `Depth: 3` and `Width: 64`, the accuracy reaches up to 99.50%.
+  - Lower depths tend to have lower accuracy. For example, with `Depth: 1` and `Width: 64`, the accuracy is around 83.45% to 97.65%.
+
+- **Learning Rate**:
+  - A moderate learning rate (e.g., 0.04) tends to yield better accuracy. For example, with `Depth: 1`, `Width: 64`, and `Learning rate: 0.04`, the accuracy is 93.13%.
+  - Very high learning rates (e.g., 0.16) result in lower accuracy. For example, with `Depth: 1`, `Width: 64`, and `Learning rate: 0.16`, the accuracy is 88.48%.
+
+- **Batch Size**:
+  - Larger batch sizes (e.g., 300) with moderate learning rates tend to perform well. For example, with `Depth: 1`, `Width: 64`, `Learning rate: 0.04`, and `Batch size: 300`, the accuracy is 92.72%.
+  - Smaller batch sizes (e.g., 100) with the same learning rate and depth can also perform well but may take longer to train.
+
+- **Epochs**:
+  - More epochs generally improve accuracy. For example, with `Depth: 3`, `Width: 64`, `Learning rate: 0.02`, `Batch size: 100`, and `Epochs: 1000`, the accuracy is 99.50%.
+  - Fewer epochs result in lower accuracy. For example, with `Depth: 1`, `Width: 64`, `Learning rate: 0.08`, `Batch size: 150`, and `Epochs: 10`, the accuracy is 83.45%.
+
+In summary, the accuracy improves with increased depth, moderate learning rates, larger batch sizes, and more epochs.
+
 ## Summary
 
 The provided files implement a Multi-Layer Perceptron (MLP) to learn the MNIST dataset. The key components include:

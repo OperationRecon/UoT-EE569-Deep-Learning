@@ -53,14 +53,180 @@ Loss: 2.133983214684785, Learning time: 316.6182.
 Test size: 10000
 Accuracy: 28.2000%, Average entropy: 2.2570147968449024
 Architecture: [(1, 3), (1, 16), (1, 32), (1, 64), (1, 128)]
-Learning rate: 0.0125
-Batch size: 32, Epochs: 5.
-Loss: 2.0132102281983, Learning time: 791.1637.
+Learning rate: 0.012
+Batch size: 64, Epochs: 5.
+Loss: 2.149501935975138, Learning time: 701.9514.
 Architecture: [(1, 3), (1, 16), (1, 32), (1, 64), (1, 128)]
-Learning rate: 0.009825
-Batch size: 32, Epochs: 5.
-Loss: 1.631411516144861, Learning time: 798.9097.
+Learning rate: 1.5e-05
+Batch size: 64, Epochs: 5.
+Loss: 2.343047111240206, Learning time: 645.5732.
+Test size: 10000
+Accuracy: 9.5800%, Average entropy: 2.2564549500455193
 Architecture: [(1, 3), (1, 16), (1, 32), (1, 64), (1, 128)]
-Learning rate: 0.01
-Batch size: 128, Epochs: 5.
-Loss: 2.241234299443902, Learning time: 461.0866.
+Learning rate: 0.015
+Batch size: 64, Epochs: 8.
+Loss: 2.1190666500439224, Learning time: 993.5516.
+Test size: 10000
+Accuracy: 51.8800%, Average entropy: 2.289348006258743
+Architecture: [(1, 3), (1, 16), (1, 32), (1, 64), (1, 128)]
+Learning rate: 0.015
+Batch size: 64, Epochs: 8.
+Loss: 1.2641608309592884, Learning time: 958.1979.
+Test size: 10000
+Accuracy: 63.0900%, Average entropy: 1.6787119826437735
+Architecture: [(1, 4), (1, 16), (1, 32), (1, 64), (1, 128)]
+Learning rate: 0.014
+Batch size: 64, Epochs: 12.
+Loss: 1.130652498591288, Learning time: 1504.0870.
+Test size: 10000
+Accuracy: 66.2000%, Average entropy: 1.5830055439690456
+Architecture: [(1, 4), (1, 16), (1, 32), (1, 64), (1, 128)]
+Learning rate: 0.04
+Batch size: 64, Epochs: 12.
+Loss: 1.0613551227232825, Learning time: 1536.1521.
+Test size: 10000
+Accuracy: 67.0200%, Average entropy: 1.4214201914516178
+Architecture: [(1, 4), (1, 16), (1, 32), (1, 64), (1, 128)]
+Learning rate: 0.025
+Batch size: 64, Epochs: 24.
+Loss: 1.416359314379858, Learning time: 3271.6705.
+Test size: 10000
+Accuracy: 60.1600%, Average entropy: 1.8543032618643989
+Architecture: [(1, 4), (1, 16), (1, 32), (1, 64), (1, 128)]
+Learning rate: 0.035
+Batch size: 64, Epochs: 24.
+Loss: 1.4461572798817415, Learning time: 3343.0870.
+Test size: 10000
+Accuracy: 57.6500%, Average entropy: 1.8986103338548794
+Architecture: [(1, 4), (1, 16), (1, 32), (1, 64), (1, 128)]
+Learning rate: 0.015
+Batch size: 64, Epochs: 64.
+Loss: 1.3205616664267494, Learning time: 8866.2446.
+Test size: 10000
+Accuracy: 61.3400%, Average entropy: 1.8014130381694606
+Architecture: [(1, 4), (1, 16), (1, 32), (1, 64), (1, 128)]
+Learning rate: 0.014
+Batch size: 64, Epochs: 24.
+Loss: 1.2509703734102766, Learning time: 3298.5143.
+Test size: 10000
+Accuracy: 70.0700%, Average entropy: 1.7952125742486906
+Architecture: [(1, 4), (1, 16), (1, 32), (1, 64), (1, 128)]
+Learning rate: 0.018
+Batch size: 64, Epochs: 24.
+Loss: 0.7986696989371366, Learning time: 3281.5627.
+Test size: 10000
+Accuracy: 72.5000%, Average entropy: 1.1087204130292563
+Architecture: [(1, 4), (1, 16), (1, 32), (1, 64), (1, 128)]
+Learning rate: 0.02
+Batch size: 64, Epochs: 24.
+Loss: 0.5935872150517444, Learning time: 3310.7778.
+Test size: 10000
+Accuracy: 27.1800%, Average entropy: 0.549680408466344
+Architecture: [(1, 4), (1, 16), (1, 32), (1, 64), (1, 128)]
+Learning rate: 0.02
+Batch size: 64, Epochs: 4.
+Loss: 2.129013051616048, Learning time: 529.1602.
+Test size: 10000
+Accuracy: 52.1400%, Average entropy: 2.2883265118511393
+Architecture: [(1, 4), (1, 16), (1, 32), (1, 64), (1, 128)]
+Learning rate: 0.02
+Batch size: 128, Epochs: 2.
+Loss: 2.2439314175797898, Learning time: 152.1434.
+Test size: 10000
+Accuracy: 38.5600%, Average entropy: 2.2993791095851597
+Architecture: [(1, 4), (1, 16), (1, 32), (1, 64), (1, 128)]
+Learning rate: 0.02
+Batch size: 256, Epochs: 2.
+Loss: 2.2529886082801673, Learning time: 111.4632.
+Test size: 10000
+Accuracy: 25.7600%, Average entropy: 2.298535859352992
+Architecture: [(1, 4), (1, 16), (1, 32), (1, 64), (1, 128)]
+Learning rate: 0.1
+Batch size: 200, Epochs: 10.
+Loss: 1.476627626770167, Learning time: 619.4282.
+Test size: 10000
+Accuracy: 68.5500%, Average entropy: 1.9976491734456154
+Architecture: [(1, 4), (1, 16), (1, 32), (1, 64), (1, 128)]
+Learning rate: 0.2
+Batch size: 200, Epochs: 10.
+Loss: 1.4179612389153395, Learning time: 615.7026.
+Test size: 10000
+Accuracy: 66.4300%, Average entropy: 1.9310535028040121
+Architecture: [(1, 4), (1, 16), (1, 32), (1, 64), (1, 128)]
+Learning rate: 0.2
+Batch size: 200, Epochs: 1.
+Loss: 2.1296794577843268, Learning time: 65.9687.
+Test size: 10000
+Accuracy: 56.6900%, Average entropy: 2.2690842897821586
+Architecture: [(1, 4), (1, 16), (1, 32), (1, 64), (1, 128)]
+Learning rate: 0.4
+Batch size: 200, Epochs: 5.
+Loss: 1.1969581706858525, Learning time: 317.7842.
+Test size: 10000
+Accuracy: 72.0400%, Average entropy: 1.7242447524657367
+Architecture: [(1, 4), (1, 16), (1, 32), (1, 64), (1, 128)]
+Learning rate: 0.8
+Batch size: 200, Epochs: 5.
+Loss: 0.9980951250163079, Learning time: 309.9884.
+Test size: 10000
+Accuracy: 78.5200%, Average entropy: 1.524228718131152
+Architecture: [(1, 4), (1, 16), (1, 32), (1, 64), (1, 128)]
+Learning rate: 1
+Batch size: 200, Epochs: 5.
+Loss: 0.7270595883502118, Learning time: 310.8659.
+Test size: 10000
+Accuracy: 82.7800%, Average entropy: 1.1242312298097856
+Architecture: [(1, 4), (1, 16), (1, 32), (1, 64), (1, 128)]
+Learning rate: 4.5
+Batch size: 200, Epochs: 5.
+Loss: 0.27570089877975856, Learning time: 327.1743.
+Test size: 10000
+Accuracy: 92.0800%, Average entropy: 0.29668733027279337
+Architecture: [(1, 4), (1, 16), (1, 32), (1, 64), (1, 128)]
+Learning rate: 8.5
+Batch size: 100, Epochs: 5.
+Loss: 2.303305576116562, Learning time: 446.9612.
+Test size: 10000
+Accuracy: 10.2800%, Average entropy: 2.30134281138105
+Architecture: [(1, 4), (1, 16), (1, 32), (1, 64), (1, 128)]
+Learning rate: 3.8
+Batch size: 150, Epochs: 5.
+Loss: 0.13971486135646768, Learning time: 357.0815.
+Test size: 10000
+Accuracy: 94.8400%, Average entropy: 0.20229281502464252
+Architecture: [(1, 4), (1, 16), (1, 32), (1, 64), (1, 128)]
+Learning rate: 3.2
+Batch size: 150, Epochs: 12.
+Loss: 0.11445245942306995, Learning time: 818.8389.
+Test size: 10000
+Accuracy: 96.0600%, Average entropy: 0.15225059285178338
+Architecture: [(1, 4), (1, 16), (1, 32), (1, 64), (1, 128)]
+Learning rate: 3.2
+Batch size: 150, Epochs: 14.
+Loss: 0.010581845594017583, Learning time: 4.1654.
+Test size: 10000
+Accuracy: 35.3500%, Average entropy: 2.2828978793330132
+Architecture: [(1, 4), (1, 16), (1, 32), (1, 64), (1, 128)]
+Learning rate: 3.2
+Batch size: 150, Epochs: 14.
+Loss: 0.025931798373356893, Learning time: 611.9142.
+Test size: 10000
+Accuracy: 97.5600%, Average entropy: 0.09959452025238154
+Architecture: [(1, 4), (1, 16), (1, 32), (1, 64), (1, 128)]
+Learning rate: 3.8
+Batch size: 150, Epochs: 14.
+Loss: 2.30190670470025, Learning time: 949.2448.
+Test size: 10000
+Accuracy: 10.2800%, Average entropy: 2.30120340921378
+Architecture: [(1, 4), (1, 16), (1, 32), (1, 64), (1, 128)]
+Learning rate: 3.2
+Batch size: 150, Epochs: 14.
+Loss: 0.01322382483537897, Learning time: 210.2763.
+Test size: 10000
+Accuracy: 93.3100%, Average entropy: 0.2895906668032453
+Architecture: [(1, 4), (1, 16), (1, 32), (1, 64), (1, 128)]
+Learning rate: 3.2
+Batch size: 150, Epochs: 14.
+Loss: 0.09692254804609869, Learning time: 968.2003.
+Test size: 10000
+Accuracy: 96.9900%, Average entropy: 0.14707633050950597
