@@ -62,7 +62,7 @@ class CNN():
                 if print_properties: print(f"\r progress: {i+x_train.shape[0]*epoch}/{x_train.shape[0]*epochs} loss:{self.loss.value/batch_size}", end='', flush=True)
 
                 # check and break code at divergence
-                if  ((self.loss.value / last_iter_loss) > 2 + 1/last_iter_loss):
+                if  ((self.loss.value / last_iter_loss) > 1.5 + 10 * (batch_size/last_iter_loss)):
                     if print_properties: print("\nDivergence Detected, reducing learing rate")
                     learning_decay_rate *= 1.2
                 
