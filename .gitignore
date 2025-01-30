@@ -3,3 +3,5 @@ __pycache__/*
 imgs/*
 assignment1/__pycache__/*
 validator_class/*
+*.egg-info
+__pycache__
