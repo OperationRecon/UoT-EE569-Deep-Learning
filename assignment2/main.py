@@ -8,9 +8,10 @@ from utils.layers import DQN
 from utils.buffer import Replay_Buffer
 from multi_car_racing.gym_multi_car_racing.multi_car_racing import MultiCarRacing
 
-
+EPOCHS = 1000
 NUM_CARS = 2  # Supports key control of two cars, but can simulate as many as needed
 USE_KEYBOARD = False  # Set to False to use random actions instead of keyboard
+NUM_ACTIONS = 5
 
 # Specify key controls for cars
 CAR_CONTROL_KEYS = [[key.LEFT, key.RIGHT, key.UP, key.DOWN],
@@ -19,7 +20,9 @@ CAR_CONTROL_KEYS = [[key.LEFT, key.RIGHT, key.UP, key.DOWN],
 POLICY = Epsilon_Greedy_Policy(epsilon=0.8, decay=0.99998)
 
 model_1 = DQN()
+target_model_1 = DQN()
 model_2 = DQN()
+target_model_2 = DQN()
 
 a = np.zeros((NUM_CARS,3))
 def key_press(k, mod):
@@ -58,7 +61,7 @@ def key_release(k, mod):
 
 # Explore with random actions
 def random_action():
-    return np.random.randn(*a.shape)
+    return np.random.randn(NUM_CARS,NUM_ACTIONS)
 
 env = MultiCarRacing(NUM_CARS)
 env.render()
@@ -72,17 +75,25 @@ record_video = False
 if record_video:
     from gym.wrappers.monitor import Monitor
     env = Monitor(env, '/tmp/video-test', force=True)
+
 isopen = True
 stopped = False
 replay_buffer_car1 = Replay_Buffer(10000)
 replay_buffer_car2 = Replay_Buffer(10000)
+
 observation_frames = deque(maxlen=4) # sotres only last 4 frames to account for temporal info
 prev_observation_frames = deque(maxlen=4)
+
 prev_action = None
 prev_reward = None
 prev_done = None
-state1 = np.random.rand(1,4,96,96)
-while isopen and not stopped:
+
+state1 = np.zeros((1,4,96,96))
+
+epoch = 0
+while epoch < EPOCHS and not stopped:
+    epoch += 1
+
     env.reset()
     total_reward = np.zeros(NUM_CARS)
     steps = 0
@@ -103,8 +114,8 @@ while isopen and not stopped:
             state2 = np.concatenate([i[1] for i in observation_frames], axis=-1).reshape(1,96,96,4).transpose((0,3,1,2))
             
             if steps > 16:
-                replay_buffer_car1.add(prev_state1, prev_action[0], prev_reward[0], state1, prev_done)
-                replay_buffer_car2.add(prev_state2, prev_action[1], prev_reward[1], state2, prev_done)
+                replay_buffer_car1.add(prev_state1, np.argmax(prev_action[0]), prev_reward[0], state1, prev_done)
+                replay_buffer_car2.add(prev_state2, np.argmax(prev_action[1]), prev_reward[1], state2, prev_done)
             
             prev_state1 = state1[:]
             prev_state2 = state2[:]
@@ -125,23 +136,23 @@ while isopen and not stopped:
             
         
         if steps % 200 == 0 or done:
-            
-            # cv2.imshow("frame", f[0])
-            # cv2.waitKey(0)
-            # cv2.destroyAllWindows()
 
             print("\nActions: " + str.join(" ", [f"Car {x}: "+str(a[x]) for x in range(NUM_CARS)]))
             print(f"Step {steps} Total_reward {total_reward} state {f.shape} temporal {state1[:,:,:,:,].shape}")
             
-            for i in range(4):
-                cv2.imshow("frame", state1.transpose((1,2,3,0))[i])
-                cv2.waitKey(0)
-                cv2.destroyAllWindows()
-            #import matplotlib.pyplot as plt
-            #plt.imshow(s)
-            #plt.savefig("test.jpeg")
+            if steps > 0:
+                model_1.learn(replay_buffer_car1, min(200, len(replay_buffer_car1.buffer)), target_model_1)
+                model_2.learn(replay_buffer_car2, min(200, len(replay_buffer_car2.buffer)), target_model_2)
         steps += 1
-        isopen = env.render().all()
-        if stopped or done or restart or isopen == False:
+        
+        if epoch % 100 == 0:
+            isopen = env.render().all()
+
+        if steps % 3000 == 0:
+            model_1.update_target(target_model_1)
+            model_2.update_target(target_model_2)
+            restart = True
+
+        if stopped or done or restart:
             break
 env.close()

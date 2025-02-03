@@ -19,10 +19,12 @@ class Replay_Buffer():
         
         # Convert experiences to PyTorch tensors
         states, actions, rewards, next_states, dones = zip(*experiences)
-        states = torch.tensor(states, dtype=torch.float32)
+        states = torch.tensor(np.array(states), dtype=torch.float32)
+        states = states.view(batch_size, *states.shape[2:])
         actions = torch.tensor(actions, dtype=torch.float32)
         rewards = torch.tensor(rewards, dtype=torch.float32)
-        next_states = torch.tensor(next_states, dtype=torch.float32)
+        next_states = torch.tensor(np.array(next_states), dtype=torch.float32)
+        next_states = next_states.view(batch_size, *next_states.shape[2:])
         dones = torch.tensor(dones, dtype=torch.float32)
         
         return states, actions, rewards, next_states, dones
@@ -31,6 +33,6 @@ class Replay_Buffer():
 if __name__ == "__main__":
     buffer = Replay_Buffer()
     for i in range(1000):
-        buffer.add(np.random.randn(1,1,96,96), np.random.randn(3), np.random.randn(1), np.random.randn(1,1,96,96), np.random.randn(1))
+        buffer.add(np.random.randn(1,1,96,96), np.random.randn(5), np.random.randn(1), np.random.randn(1,1,96,96), np.random.randn(1))
     print(buffer.sample(10))
 
