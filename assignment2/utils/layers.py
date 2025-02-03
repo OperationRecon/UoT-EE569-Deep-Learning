@@ -7,7 +7,7 @@ import numpy as np
 # Architecture would be modifed directly here for now
 # TODO: Add a way to modularly build architecture
 
-cnn_architecture = [[1,16,8,4],[16,32,4,2],[2,2],[32,64,4,1],[64,64,2,1,],] # entries with 2 values are for pooling layers, other for conv layers
+cnn_architecture = [[4,16,8,4],[16,32,4,2],[2,2],[32,64,4,1],[64,64,2,1,],] # entries with 2 values are for pooling layers, other for conv layers
 fcn_architecture = [64, 512] #in the middle are the hidden layer sizes, 64 is the input size
 output_size = 5 # number of actions
 
