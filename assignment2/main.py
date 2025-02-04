@@ -10,7 +10,7 @@ from multi_car_racing.gym_multi_car_racing.multi_car_racing import MultiCarRacin
 
 # moves model to GPU if available
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-torch.set_default_dtype(torch.cuda.float16 if torch.cuda.is_available() else torch.float16)
+torch.set_default_dtype(torch.cuda.FloatTensor if torch.cuda.is_available() else torch.FloatTensor)
 torch.set_default_device(device)
 
 EPOCHS = 1000
