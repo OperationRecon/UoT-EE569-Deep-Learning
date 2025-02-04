@@ -96,17 +96,18 @@ state1 = np.zeros((1, 4, 96, 96))
 
 epoch = 0
 while epoch <= EPOCHS and not stopped:
-
     env.reset()
     total_reward = np.zeros(NUM_CARS)
-    high_total_reward = np.zeros_like(total_reward)
+    episode_reward = np.zeros(NUM_CARS)
+    high_episode_reward = np.zeros_like(total_reward)
     steps = 0
     restart = False
-    while True:
 
+    while True:
+        
         s, r, done, info = env.step(a)
         
-        if steps+1 % 4000 == 0:
+        if steps > 6000:
             done = True
 
         if steps % 4 == 0:
@@ -117,9 +118,10 @@ while epoch <= EPOCHS and not stopped:
             observation_frames.append(f)
 
             total_reward += r
+            episode_reward += r
 
             for i in range(total_reward.shape[0]):
-                high_total_reward[i] = max(high_total_reward[i], total_reward[i])
+                high_episode_reward[i] = max(high_episode_reward[i], episode_reward[i])
 
         if steps % 16 == 0 and steps > 0:
 
@@ -140,7 +142,7 @@ while epoch <= EPOCHS and not stopped:
             prev_done = done
             prev_reward = r
 
-            if True in env.driving_backward or True in env.driving_on_grass  or True in [total_reward[i] - high_total_reward[i] < -12 for i in range(NUM_CARS)]:
+            if True in env.driving_backward or True in env.driving_on_grass  or True in [episode_reward[i] - high_episode_reward[i] < -18 for i in range(NUM_CARS)]:
                 restart = True
                 prev_done = restart
                 r = [r[i] -18 if env.driving_backward[i] or env.driving_on_grass[i] else r[i] for i in range(NUM_CARS)]
@@ -155,7 +157,12 @@ while epoch <= EPOCHS and not stopped:
                     discrete_to_action(random_action())
         if restart:
             restart = False
+            env.verbose = False
+            high_episode_reward = np.zeros(NUM_CARS)
+            episode_reward = np.zeros(NUM_CARS)
+            print(f"\rStep: {steps} Actions: " + str.join(" ", [f"Car {x}: " + str(a[x]) for x in range(NUM_CARS)]), end='', flush=True)
             env.reset()
+            env.verbose = True
 
         steps += 1
 
