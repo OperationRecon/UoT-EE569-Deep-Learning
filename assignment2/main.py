@@ -8,6 +8,10 @@ from utils.layers import DQN
 from utils.buffer import Replay_Buffer
 from multi_car_racing.gym_multi_car_racing.multi_car_racing import MultiCarRacing
 
+# moves model to GPU if available
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+
 EPOCHS = 1000
 NUM_CARS = 2  # Supports key control of two cars, but can simulate as many as needed
 USE_KEYBOARD = False  # Set to False to use random actions instead of keyboard
@@ -20,9 +24,13 @@ CAR_CONTROL_KEYS = [[key.LEFT, key.RIGHT, key.UP, key.DOWN],
 POLICY = Epsilon_Greedy_Policy(epsilon=0.8, decay=0.99998)
 
 model_1 = DQN()
+model_1.to(device)
 target_model_1 = DQN()
+target_model_1.to(device)
 model_2 = DQN()
+model_2.to(device)
 target_model_2 = DQN()
+target_model_2.to(device)
 
 a = np.zeros((NUM_CARS,3))
 def key_press(k, mod):
