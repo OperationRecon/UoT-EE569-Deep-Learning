@@ -91,13 +91,17 @@ prev_done = None
 state1 = np.zeros((1,4,96,96))
 
 epoch = 0
-while epoch < EPOCHS and not stopped:
-    epoch += 1
+while epoch <= EPOCHS and not stopped:
 
     env.reset()
     total_reward = np.zeros(NUM_CARS)
+    high_total_reward = np.zeros_like(total_reward)
     steps = 0
     restart = False
+    if epoch == EPOCHS:
+        cv2.imshow('final', np.random.randn(1,96,96,1))
+        cv2.waitKey(2)
+        cv2.destroyAllWindows()
     while True:
         if steps % 4 == 0:
             s, r, done, info = env.step(a)
@@ -108,8 +112,16 @@ while epoch < EPOCHS and not stopped:
 
             total_reward += r
 
+            for i in range(total_reward.shape[0]):
+                high_total_reward[i] = max(high_total_reward[i], total_reward[i])
+
 
         if steps % 16 == 0 and steps > 0:
+
+            if False not in [i < -20 for i in total_reward - high_total_reward]:
+                r = [-8,-8]
+                done = True
+
             state1 = np.concatenate([i[0] for i in observation_frames], axis=-1).reshape(1,96,96,4).transpose((0,3,1,2))
             state2 = np.concatenate([i[1] for i in observation_frames], axis=-1).reshape(1,96,96,4).transpose((0,3,1,2))
             
@@ -133,26 +145,26 @@ while epoch < EPOCHS and not stopped:
                     discrete_to_action(random_action())
                     
 
-            
-        
-        if steps % 200 == 0 or done:
-
-            print("\nActions: " + str.join(" ", [f"Car {x}: "+str(a[x]) for x in range(NUM_CARS)]))
-            print(f"Step {steps} Total_reward {total_reward} state {f.shape} temporal {state1[:,:,:,:,].shape}")
-            
-            if steps > 0:
-                model_1.learn(replay_buffer_car1, min(200, len(replay_buffer_car1.buffer)), target_model_1)
-                model_2.learn(replay_buffer_car2, min(200, len(replay_buffer_car2.buffer)), target_model_2)
         steps += 1
-        
-        if epoch % 100 == 0:
+      
+        if epoch % EPOCHS == 0:
             isopen = env.render().all()
-
-        if steps % 3000 == 0:
-            model_1.update_target(target_model_1)
-            model_2.update_target(target_model_2)
+        
+        if steps % 4000 == 0:
             restart = True
 
         if stopped or done or restart:
+
+            model_1.learn(replay_buffer_car1, min(500, len(replay_buffer_car1.buffer)), target_model_1)
+            model_2.learn(replay_buffer_car2, min(500, len(replay_buffer_car2.buffer)), target_model_2)
+
+            print("\nActions: " + str.join(" ", [f"Car {x}: "+str(a[x]) for x in range(NUM_CARS)]))
+            print(f"Step {steps} Total_reward {total_reward} epoch: {epoch}")
             break
-env.close()
+
+        if (epoch + 1)% 80 == 0:
+            model_1.update_target(target_model_1)
+            model_2.update_target(target_model_2)
+
+    epoch += 1
+    env.close()
