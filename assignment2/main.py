@@ -107,7 +107,7 @@ while epoch <= EPOCHS and not stopped:
         
         s, r, done, info = env.step(a)
         
-        if steps > 6000:
+        if steps > 2600:
             done = True
 
         if steps % 4 == 0:
