@@ -1,35 +1,54 @@
 from collections import deque
-
 import numpy as np
 import torch
 
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
 class Replay_Buffer():
-    def __init__(self, capacity=int(10e4)):
-        self.buffer = deque(maxlen= capacity)
+    def __init__(self, state_shape=[4,96,96], capacity=int(1e5)):
         self.capacity = capacity
+        self.position = 0
+        self.full = False
+        
+        # Preallocate memory for experiences
+        self.states = torch.zeros((capacity, *state_shape), dtype=torch.float32)
+        self.actions = torch.zeros((capacity, 1), dtype=torch.int64)
+        self.rewards = torch.zeros((capacity, 1), dtype=torch.float32)
+        self.next_states = torch.zeros((capacity, *state_shape), dtype=torch.float32)
+        self.dones = torch.zeros((capacity, 1), dtype=torch.float32)
     
     def add(self, state, action, reward, next_state, done):
-        '''add a new experience to the buffer'''
-        self.buffer.append((state, action, reward, next_state, done))
-
+        '''Add a new experience to the buffer'''
+        idx = self.position % self.capacity
+        
+        self.states[idx] = torch.from_numpy(state)
+        self.actions[idx] = torch.tensor(action, dtype=torch.int64).view(-1)
+        self.rewards[idx] = torch.tensor(reward, dtype=torch.float32).view(-1)
+        self.next_states[idx] = torch.from_numpy(next_state)
+        self.dones[idx] = torch.tensor(done, dtype=torch.float32).view(-1)
+        
+        self.position += 1
+        if self.position >= self.capacity:
+            self.full = True
+    
     def sample(self, batch_size):
-        '''sample a batch of experiences from the buffer'''
-        idx = np.random.choice(np.arange(len(self.buffer)), size=batch_size, replace=False)
-        experiences = [self.buffer[i] for i in idx]
+        '''Sample a batch of experiences from the buffer'''
+        '''Sample a batch of experiences from the buffer'''
+        max_index = self.capacity if self.full else self.position
         
-        # Convert experiences to PyTorch tensors
-        states, actions, rewards, next_states, dones = zip(*experiences)
-        states = torch.tensor(np.array(states), dtype=torch.float32)
-        states = states.view(batch_size, *states.shape[2:])
-        actions = torch.tensor(actions, dtype=torch.float32)
-        rewards = torch.tensor(rewards, dtype=torch.float32)
-        next_states = torch.tensor(np.array(next_states), dtype=torch.float32)
-        next_states = next_states.view(batch_size, *next_states.shape[2:])
-        dones = torch.tensor(dones, dtype=torch.float32)
+        # Adjust batch size if buffer has fewer samples than batch_size
+        if max_index < batch_size:
+            batch_size = max_index
         
-        return states, actions, rewards, next_states, dones
-    
-    
+        idx = np.random.choice(max_index, batch_size, replace=False)
+        states = self.states[idx].to(device)
+        actions = self.actions[idx].to(device)
+        rewards = self.rewards[idx].to(device)
+        next_states = self.next_states[idx].to(device)
+        dones = self.dones[idx].to(device)
+        
+        return states, actions.squeeze(-1), rewards.squeeze(-1), next_states, dones.squeeze(-1)
+
 if __name__ == "__main__":
     buffer = Replay_Buffer()
     for i in range(1000):
