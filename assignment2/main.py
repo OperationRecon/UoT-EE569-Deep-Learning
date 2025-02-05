@@ -106,24 +106,23 @@ while epoch <= EPOCHS and not stopped:
     while True:
         
         s, r, done, info = env.step(a)
-        
+
         if steps > 2600:
             done = True
 
-        if steps % 4 == 0:
-            
+        f = np.array([cv2.cvtColor(x, cv2.COLOR_BGR2GRAY)[:, :, np.newaxis] for x in s[:]])  # convert to grayscale
 
-            f = np.array([cv2.cvtColor(x, cv2.COLOR_BGR2GRAY)[:, :, np.newaxis] for x in s[:]])  # convert to grayscale
+        observation_frames.append(f)
 
-            observation_frames.append(f)
+        speed = [i.hull.linearVelocity.Normalize() for i in env.cars]
+        r +=  -1 + 0.8 * np.array(speed) + (np.array(env.tile_visited_count) * 0.001)
+        total_reward += r
+        episode_reward += r
 
-            total_reward += r
-            episode_reward += r
+        for i in range(total_reward.shape[0]):
+            high_episode_reward[i] = max(high_episode_reward[i], episode_reward[i])
 
-            for i in range(total_reward.shape[0]):
-                high_episode_reward[i] = max(high_episode_reward[i], episode_reward[i])
-
-        if steps % 16 == 0 and steps > 0:
+        if steps % 4 == 0 and steps > 0:
 
             state1 = np.concatenate([i[0] for i in observation_frames], axis=-1).reshape(1, 96, 96, 4).transpose((0, 3, 1, 2))
             state2 = np.concatenate([i[1] for i in observation_frames], axis=-1).reshape(1, 96, 96, 4).transpose((0, 3, 1, 2))
@@ -131,21 +130,22 @@ while epoch <= EPOCHS and not stopped:
             state1 = torch.tensor(state1, dtype=torch.float32).to(device)
             state2 = torch.tensor(state2, dtype=torch.float32).to(device)
 
-            if steps > 16:
+            if steps > 4:
                 replay_buffer_car1.add(prev_state1.cpu().numpy(), np.argmax(prev_action[0]), prev_reward[0], state1.cpu().numpy(), prev_done)
                 replay_buffer_car2.add(prev_state2.cpu().numpy(), np.argmax(prev_action[1]), prev_reward[1], state2.cpu().numpy(), prev_done)
 
             prev_state1 = state1.clone()
             prev_state2 = state2.clone()
-
+    
             prev_action = a
             prev_done = done
-            prev_reward = r
+            
+            prev_reward = r 
 
-            if True in env.driving_backward or True in env.driving_on_grass  or True in [episode_reward[i] - high_episode_reward[i] < -18 for i in range(NUM_CARS)]:
+            if  True in env.driving_on_grass  or True in [episode_reward[i] - high_episode_reward[i] < -60 for i in range(NUM_CARS)]:
                 restart = True
                 prev_done = restart
-                r = [r[i] -18 if env.driving_backward[i] or env.driving_on_grass[i] else r[i] for i in range(NUM_CARS)]
+                r = [r[i] -18 if  env.driving_on_grass[i] or episode_reward[i] - high_episode_reward[i] < -60 else r[i] for i in range(NUM_CARS)]
 
 
             if not USE_KEYBOARD:
@@ -158,26 +158,27 @@ while epoch <= EPOCHS and not stopped:
         if restart:
             restart = False
             env.verbose = False
+            print(f"\rStep: {steps} Episode_Reward {episode_reward} Actions: " + str.join(" ", [f"Car {x}: " + str(a[x]) for x in range(NUM_CARS)]), end='', flush=True)
             high_episode_reward = np.zeros(NUM_CARS)
             episode_reward = np.zeros(NUM_CARS)
-            print(f"\rStep: {steps} Actions: " + str.join(" ", [f"Car {x}: " + str(a[x]) for x in range(NUM_CARS)]), end='', flush=True)
             env.reset()
             env.verbose = True
 
         steps += 1
 
-        if epoch % EPOCHS == 0:
+        if epoch % (EPOCHS // 4) == 0:
             isopen = env.render().all()
 
         if stopped or done:
-            model_1.learn(replay_buffer_car1, 5000, target_model_1)
-            model_2.learn(replay_buffer_car2, 5000, target_model_2)
+            for i in range(4):
+                model_1.learn(replay_buffer_car1, 16, target_model_1)
+                model_2.learn(replay_buffer_car2, 16, target_model_2)
 
             print("\nActions: " + str.join(" ", [f"Car {x}: " + str(a[x]) for x in range(NUM_CARS)]))
             print(f"Step {steps} Total_reward {total_reward} epoch: {epoch}")
             break
 
-        if (epoch + 1) % 80 == 0:
+        if epoch % 5 == 0 and epoch > 0:
             model_1.update_target(target_model_1)
             model_2.update_target(target_model_2)
 
