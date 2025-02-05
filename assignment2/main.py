@@ -8,16 +8,15 @@ from utils.policy import Epsilon_Greedy_Policy
 from utils.layers import DQN
 from utils.buffer import Replay_Buffer
 from multi_car_racing.gym_multi_car_racing.multi_car_racing import MultiCarRacing
+import imageio
 
 # moves model to GPU if available
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 torch.set_default_device(device)
 
-EPOCHS = 100
+EPOCHS = 1
 NUM_CARS = 2  # Supports key control of two cars, but can simulate as many as needed
 USE_KEYBOARD = False
-
-  # Set to False to use random actions instead of keyboard
 NUM_ACTIONS = 5
 
 # Specify key controls for cars
@@ -80,10 +79,6 @@ for viewer in env.viewer:
     viewer.window.on_key_press = key_press
     viewer.window.on_key_release = key_release
 
-record_video = False
-if record_video:
-    from gym.wrappers.monitor import Monitor
-    env = Monitor(env, '/tmp/video-test', force=True)
 
 isopen = True
 stopped = False
@@ -94,12 +89,13 @@ observation_frames = deque(maxlen=4)  # stores only last 4 frames to account for
 prev_observation_frames = deque(maxlen=4)
 
 prev_action = None
-
 prev_done = None
 
 state1 = np.zeros((1, 4, 96, 96))
 
-epoch = 0
+
+
+epoch = 1
 while epoch <= EPOCHS and not stopped:
     env.reset()
 
@@ -109,6 +105,11 @@ while epoch <= EPOCHS and not stopped:
     steps = 0
     restart = False
 
+    if epoch % max(EPOCHS // 10, 1) == 0:
+        # Initialize video recording
+        video_filename = f'imgs/a2/epoch{epoch}.mp4'
+        video_writer = imageio.get_writer(video_filename, fps=30)
+    
     while True:
         s, r, done, info = env.step(a)
 
@@ -122,6 +123,7 @@ while epoch <= EPOCHS and not stopped:
         r = calculate_reward(env, r)
         total_reward += r
         episode_reward += r
+            
 
         for i in range(total_reward.shape[0]):
             high_episode_reward[i] = max(high_episode_reward[i], episode_reward[i])
@@ -168,7 +170,11 @@ while epoch <= EPOCHS and not stopped:
 
         steps += 1
 
-        if epoch % (EPOCHS // 10) == 0:
+        if epoch % max(EPOCHS // 10, 1) == 0:
+            # Capture frame for recording
+            frame = env.render(mode='rgb_array')
+            frame = np.block([[frame[0]], [frame[1]]])
+            video_writer.append_data(frame)
             isopen = env.render().all()
 
         if stopped or done:
