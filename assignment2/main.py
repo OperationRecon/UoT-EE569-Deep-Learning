@@ -3,6 +3,7 @@ import cv2
 import torch
 from pyglet.window import key
 from collections import deque
+from utils.reward_calculation import calculate_reward
 from utils.policy import Epsilon_Greedy_Policy
 from utils.layers import DQN
 from utils.buffer import Replay_Buffer
@@ -12,9 +13,11 @@ from multi_car_racing.gym_multi_car_racing.multi_car_racing import MultiCarRacin
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 torch.set_default_device(device)
 
-EPOCHS = 1000
+EPOCHS = 100
 NUM_CARS = 2  # Supports key control of two cars, but can simulate as many as needed
-USE_KEYBOARD = False  # Set to False to use random actions instead of keyboard
+USE_KEYBOARD = False
+
+  # Set to False to use random actions instead of keyboard
 NUM_ACTIONS = 5
 
 # Specify key controls for cars
@@ -64,7 +67,9 @@ def key_release(k, mod):
 
 # Explore with random actions
 def random_action():
-    x =  np.random.rand(NUM_CARS, NUM_ACTIONS) # increase liklihood of accelration actions
+    x =  np.random.rand(NUM_CARS, NUM_ACTIONS) 
+    # increase liklihood of accelration actions
+    x[:, 2] = x[:, 2] * 1.5
     return x
 
 env = MultiCarRacing(NUM_CARS)
@@ -97,6 +102,7 @@ state1 = np.zeros((1, 4, 96, 96))
 epoch = 0
 while epoch <= EPOCHS and not stopped:
     env.reset()
+
     total_reward = np.zeros(NUM_CARS)
     episode_reward = np.zeros(NUM_CARS)
     high_episode_reward = np.zeros_like(total_reward)
@@ -104,7 +110,6 @@ while epoch <= EPOCHS and not stopped:
     restart = False
 
     while True:
-        
         s, r, done, info = env.step(a)
 
         if steps > 2600:
@@ -114,8 +119,8 @@ while epoch <= EPOCHS and not stopped:
 
         observation_frames.append(f)
 
-        speed = [i.hull.linearVelocity.Normalize() for i in env.cars]
-        r +=  -1 + 0.8 * np.array(speed) + (np.array(env.tile_visited_count) * 0.001)
+        speed = [i.hull.linearVelocity.length for i in env.cars]
+        r = calculate_reward(env, r)
         total_reward += r
         episode_reward += r
 
@@ -142,10 +147,11 @@ while epoch <= EPOCHS and not stopped:
             
             prev_reward = r 
 
-            if  True in env.driving_on_grass  or True in [episode_reward[i] - high_episode_reward[i] < -60 for i in range(NUM_CARS)]:
+            
+
+            if  True in env.driving_on_grass  or True in [episode_reward[i] - high_episode_reward[i] < -3000 for i in range(NUM_CARS)]:
                 restart = True
                 prev_done = restart
-                r = [r[i] -18 if  env.driving_on_grass[i] or episode_reward[i] - high_episode_reward[i] < -60 else r[i] for i in range(NUM_CARS)]
 
 
             if not USE_KEYBOARD:
