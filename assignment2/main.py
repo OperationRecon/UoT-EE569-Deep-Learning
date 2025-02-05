@@ -87,14 +87,14 @@ if record_video:
 
 isopen = True
 stopped = False
-replay_buffer_car1 = Replay_Buffer(capacity=10000)
-replay_buffer_car2 = Replay_Buffer(capacity=10000)
+replay_buffer_car1 = Replay_Buffer(capacity=8000)
+replay_buffer_car2 = Replay_Buffer(capacity=8000)
 
 observation_frames = deque(maxlen=4)  # stores only last 4 frames to account for temporal info
 prev_observation_frames = deque(maxlen=4)
 
 prev_action = None
-prev_reward = None
+
 prev_done = None
 
 state1 = np.zeros((1, 4, 96, 96))
@@ -115,11 +115,10 @@ while epoch <= EPOCHS and not stopped:
         if steps > 2600:
             done = True
 
-        f = np.array([cv2.cvtColor(x, cv2.COLOR_BGR2GRAY)[:, :, np.newaxis] for x in s[:]])  # convert to grayscale
+        f = torch.tensor([cv2.cvtColor(x, cv2.COLOR_BGR2GRAY)[:, :, np.newaxis] for x in s[:]])  # convert to grayscale
 
         observation_frames.append(f)
 
-        speed = [i.hull.linearVelocity.length for i in env.cars]
         r = calculate_reward(env, r)
         total_reward += r
         episode_reward += r
@@ -136,16 +135,13 @@ while epoch <= EPOCHS and not stopped:
             state2 = torch.tensor(state2, dtype=torch.float32).to(device)
 
             if steps > 4:
-                replay_buffer_car1.add(prev_state1.cpu().numpy(), np.argmax(prev_action[0]), prev_reward[0], state1.cpu().numpy(), prev_done)
-                replay_buffer_car2.add(prev_state2.cpu().numpy(), np.argmax(prev_action[1]), prev_reward[1], state2.cpu().numpy(), prev_done)
+                replay_buffer_car1.add(prev_state1.cpu().numpy(), np.argmax(prev_action[0]), r[0], state1.cpu().numpy(), prev_done)
+                replay_buffer_car2.add(prev_state2.cpu().numpy(), np.argmax(prev_action[1]), r[1], state2.cpu().numpy(), prev_done)
 
             prev_state1 = state1.clone()
             prev_state2 = state2.clone()
-    
             prev_action = a
             prev_done = done
-            
-            prev_reward = r 
 
             
 
@@ -164,7 +160,7 @@ while epoch <= EPOCHS and not stopped:
         if restart:
             restart = False
             env.verbose = False
-            print(f"\rStep: {steps} Episode_Reward {episode_reward} Actions: " + str.join(" ", [f"Car {x}: " + str(a[x]) for x in range(NUM_CARS)]), end='', flush=True)
+            print(f"\rStep: {steps} Episode_Reward {episode_reward}  reward: {r} Actions: " + str.join(" ", [f"Car {x}: " + str(a[x]) for x in range(NUM_CARS)]), end='', flush=True)
             high_episode_reward = np.zeros(NUM_CARS)
             episode_reward = np.zeros(NUM_CARS)
             env.reset()
@@ -172,19 +168,25 @@ while epoch <= EPOCHS and not stopped:
 
         steps += 1
 
-        if epoch % (EPOCHS // 4) == 0:
+        if epoch % (EPOCHS // 10) == 0:
             isopen = env.render().all()
 
         if stopped or done:
-            for i in range(4):
-                model_1.learn(replay_buffer_car1, 16, target_model_1)
-                model_2.learn(replay_buffer_car2, 16, target_model_2)
+            if torch.cuda.is_available():
+                for i in range(4):
+                    model_1.learn(replay_buffer_car1, 265, target_model_1)
+                    model_2.learn(replay_buffer_car2, 265, target_model_2)
+            
+            else:
+                for i in range(12):
+                    model_1.learn(replay_buffer_car1, 16, target_model_1)
+                    model_2.learn(replay_buffer_car2, 16, target_model_2)
 
             print("\nActions: " + str.join(" ", [f"Car {x}: " + str(a[x]) for x in range(NUM_CARS)]))
             print(f"Step {steps} Total_reward {total_reward} epoch: {epoch}")
             break
 
-        if epoch % 5 == 0 and epoch > 0:
+        if epoch % 4 == 0 and epoch > 0:
             model_1.update_target(target_model_1)
             model_2.update_target(target_model_2)
 
