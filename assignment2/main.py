@@ -7,23 +7,22 @@ from utils.reward_calculation import calculate_reward
 from utils.policy import Epsilon_Greedy_Policy
 from utils.layers import DQN
 from utils.buffer import Replay_Buffer
+import gym
 from multi_car_racing.gym_multi_car_racing.multi_car_racing import MultiCarRacing
 import imageio
+from torch.utils.tensorboard import SummaryWriter
 
 # moves model to GPU if available
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 torch.set_default_device(device)
 
-EPOCHS = 1
+EPOCHS = 120
 NUM_CARS = 2  # Supports key control of two cars, but can simulate as many as needed
-USE_KEYBOARD = False
 NUM_ACTIONS = 5
 
-# Specify key controls for cars
-CAR_CONTROL_KEYS = [[key.LEFT, key.RIGHT, key.UP, key.DOWN],
-                    [key.A, key.D, key.W, key.S]]
+learning_iterations = 10
 
-POLICY = Epsilon_Greedy_Policy(epsilon=0.8, decay=0.99998)
+POLICY = Epsilon_Greedy_Policy(epsilon=1, decay=0.98)
 
 model_1 = DQN().to(device)
 target_model_1 = DQN().to(device)
@@ -31,19 +30,6 @@ model_2 = DQN().to(device)
 target_model_2 = DQN().to(device)
 
 a = np.zeros((NUM_CARS, 3))
-
-def key_press(k, mod):
-    global restart, stopped, CAR_CONTROL_KEYS
-    if k == key.ESCAPE: stopped = True  # Terminate on esc.
-    if k == key.RETURN or k == key.ENTER: restart = True  # Restart on Enter.
-
-    if USE_KEYBOARD:
-        # Iterate through cars and assign them control keys (mod num controllers)
-        for i in range(min(len(CAR_CONTROL_KEYS), NUM_CARS)):
-            if k == CAR_CONTROL_KEYS[i % len(CAR_CONTROL_KEYS)][0]: a[i][0] = -1.0
-            if k == CAR_CONTROL_KEYS[i % len(CAR_CONTROL_KEYS)][1]: a[i][0] = +1.0
-            if k == CAR_CONTROL_KEYS[i % len(CAR_CONTROL_KEYS)][2]: a[i][1] = +1.0
-            if k == CAR_CONTROL_KEYS[i % len(CAR_CONTROL_KEYS)][3]: a[i][2] = +0.8  # set 1.0 for wheels to block to zero rotation
 
 def discrete_to_action(action: list):
     '''converts the discrete action (likely to be retained as an array of the Q-values of all actions)
@@ -53,49 +39,41 @@ def discrete_to_action(action: list):
     for i in range(len(action)):
         a[i] = action_map[int(action[i].argmax())]
 
-def key_release(k, mod):
-    global CAR_CONTROL_KEYS
-
-    if USE_KEYBOARD:
-        # Iterate through cars and assign them control keys (mod num controllers)
-        for i in range(min(len(CAR_CONTROL_KEYS), NUM_CARS)):
-            if k == CAR_CONTROL_KEYS[i % len(CAR_CONTROL_KEYS)][0] and a[i][0] == -1.0: a[i][0] = 0
-            if k == CAR_CONTROL_KEYS[i % len(CAR_CONTROL_KEYS)][1] and a[i][0] == +1.0: a[i][0] = 0
-            if k == CAR_CONTROL_KEYS[i % len(CAR_CONTROL_KEYS)][2]: a[i][1] = 0
-            if k == CAR_CONTROL_KEYS[i % len(CAR_CONTROL_KEYS)][3]: a[i][2] = 0
-
 # Explore with random actions
 def random_action():
-    x =  np.random.rand(NUM_CARS, NUM_ACTIONS) 
-    # increase liklihood of accelration actions
-    x[:, 2] = x[:, 2] * 1.5
+    '''Takes random action with higher chance of it being forward movement to encourage track progress.'''
+    x =  torch.rand(NUM_CARS, NUM_ACTIONS)  * torch.tensor([1,1,1.2,1,1])[torch.newaxis, :]
     return x
 
-env = MultiCarRacing(NUM_CARS)
-env.render()
-
-for viewer in env.viewer:
-    # key_press and key_release function are not conditional by USE_KEYBOARD because they contain other functionality
-    viewer.window.on_key_press = key_press
-    viewer.window.on_key_release = key_release
-
+env = gym.make("MultiCarRacing-v0", num_agents=2, direction='CCW',
+        use_random_direction=True, backwards_flag=True, h_ratio=0.25,
+        use_ego_color=False, verbose=False)
+f = env.render()
 
 isopen = True
 stopped = False
-replay_buffer_car1 = Replay_Buffer(capacity=8000)
-replay_buffer_car2 = Replay_Buffer(capacity=8000)
+replay_buffer_car1 = Replay_Buffer(capacity=10000)
+replay_buffer_car2 = Replay_Buffer(capacity=10000)
 
 observation_frames = deque(maxlen=4)  # stores only last 4 frames to account for temporal info
 prev_observation_frames = deque(maxlen=4)
 
-prev_action = None
-prev_done = None
-
 state1 = np.zeros((1, 4, 96, 96))
 
+early_stopping_patience = 32  # Stop training if no improvement for this many epochs
 
+# Lists to store performance metrics
+total_rewards = []
 
-epoch = 1
+# Early stopping variables
+best_reward = -float('inf')
+patience_counter = 0
+
+# Initialize TensorBoard writer
+writer = SummaryWriter(log_dir='assignment2/runs/experiment1')
+
+epoch = 0
+
 while epoch <= EPOCHS and not stopped:
     env.reset()
 
@@ -111,19 +89,23 @@ while epoch <= EPOCHS and not stopped:
         video_writer = imageio.get_writer(video_filename, fps=30)
     
     while True:
+
+        # use action, unless on grass, in which case try to return the car to the road
+        a = a
+
         s, r, done, info = env.step(a)
 
-        if steps > 2600:
+        if steps > 800:
             done = True
-
-        f = torch.tensor([cv2.cvtColor(x, cv2.COLOR_BGR2GRAY)[:, :, np.newaxis] for x in s[:]])  # convert to grayscale
+        
+        f = np.array([cv2.cvtColor(x, cv2.COLOR_BGR2GRAY)[:, :, np.newaxis] for x in s[:]]) / 255 # convert to grayscale
 
         observation_frames.append(f)
 
         r = calculate_reward(env, r)
         total_reward += r
-        episode_reward += r
-            
+        episode_reward += r       
+
 
         for i in range(total_reward.shape[0]):
             high_episode_reward[i] = max(high_episode_reward[i], episode_reward[i])
@@ -135,68 +117,88 @@ while epoch <= EPOCHS and not stopped:
 
             state1 = torch.tensor(state1, dtype=torch.float32).to(device)
             state2 = torch.tensor(state2, dtype=torch.float32).to(device)
+            
+            restart =  False not in [episode_reward[i] - high_episode_reward[i] < -40 for i in range(NUM_CARS)]
 
             if steps > 4:
-                replay_buffer_car1.add(prev_state1.cpu().numpy(), np.argmax(prev_action[0]), r[0], state1.cpu().numpy(), prev_done)
-                replay_buffer_car2.add(prev_state2.cpu().numpy(), np.argmax(prev_action[1]), r[1], state2.cpu().numpy(), prev_done)
+                replay_buffer_car1.add(prev_state1.cpu().numpy(), torch.argmax(decision[0]), r[0], state1.cpu().numpy(), done or restart)
 
+                replay_buffer_car2.add(prev_state2.cpu().numpy(), torch.argmax(decision[1]), r[1], state2.cpu().numpy(), done or restart)
+            
             prev_state1 = state1.clone()
             prev_state2 = state2.clone()
-            prev_action = a
-            prev_done = done
 
+            if POLICY.select_action():
+                decision = [model_1.forward(state1), model_2.forward(state2)]
+                
+            else:
+                decision = random_action()
             
+            discrete_to_action(decision)
 
-            if  True in env.driving_on_grass  or True in [episode_reward[i] - high_episode_reward[i] < -3000 for i in range(NUM_CARS)]:
-                restart = True
-                prev_done = restart
+        if  done:
+            for _ in range(int(learning_iterations * min(1, 2 * epoch / EPOCHS + 1))):
+                loss_1 = model_1.learn(replay_buffer_car1, batch_size=128, target_model=target_model_1)
+                loss_2 = model_2.learn(replay_buffer_car2, batch_size=128, target_model=target_model_2)
+                writer.add_scalar('Loss/model_1', loss_1, epoch * steps + steps)
+                writer.add_scalar('Loss/model_2', loss_2, epoch * steps + steps)
 
-
-            if not USE_KEYBOARD:
-                if POLICY.select_action():
-                    discrete_to_action(
-                        [model_1.forward(state1), model_2.forward(state2)]
-                    )
-                else:
-                    discrete_to_action(random_action())
         if restart:
             restart = False
-            env.verbose = False
-            print(f"\rStep: {steps} Episode_Reward {episode_reward}  reward: {r} Actions: " + str.join(" ", [f"Car {x}: " + str(a[x]) for x in range(NUM_CARS)]), end='', flush=True)
+            print(f"\rStep: {steps} Episode_Reward {episode_reward}  reward: {r}", end='', flush=True)
             high_episode_reward = np.zeros(NUM_CARS)
             episode_reward = np.zeros(NUM_CARS)
             env.reset()
-            env.verbose = True
 
         steps += 1
+
+        if stopped or done:
+            total_rewards.append(total_reward.mean()/steps)
+            writer.add_scalar('Reward/total_reward', total_reward.mean()/steps, epoch)
+            print(f"Epoch {epoch} - Total Reward: {total_reward.mean()/steps}")
+            break
 
         if epoch % max(EPOCHS // 10, 1) == 0:
             # Capture frame for recording
             frame = env.render(mode='rgb_array')
             frame = np.block([[frame[0]], [frame[1]]])
             video_writer.append_data(frame)
-            isopen = env.render().all()
-
-        if stopped or done:
-            if torch.cuda.is_available():
-                for i in range(4):
-                    model_1.learn(replay_buffer_car1, 265, target_model_1)
-                    model_2.learn(replay_buffer_car2, 265, target_model_2)
-            
-            else:
-                for i in range(12):
-                    model_1.learn(replay_buffer_car1, 16, target_model_1)
-                    model_2.learn(replay_buffer_car2, 16, target_model_2)
-
-            print("\nActions: " + str.join(" ", [f"Car {x}: " + str(a[x]) for x in range(NUM_CARS)]))
-            print(f"Step {steps} Total_reward {total_reward} epoch: {epoch}")
-            break
-
-        if epoch % 4 == 0 and epoch > 0:
-            model_1.update_target(target_model_1)
-            model_2.update_target(target_model_2)
 
     epoch += 1
+
+    video_writer.close()
+
+    if total_reward.mean() > best_reward:
+        best_reward = total_reward.mean()
+        patience_counter = 0
+    else:
+        patience_counter += 1
+
+    if patience_counter > early_stopping_patience:
+        print("Early stopping triggered.")
+        break
+
+    if epoch % 12 == 0 and epoch > 0:
+        model_1.update_target(target_model_1)
+        model_2.update_target(target_model_2)
+
     POLICY.update_epsilon()
 
     env.close()
+
+final_data = {
+    'model_1_state_dict': model_1.state_dict(),
+    'model_2_state_dict': model_2.state_dict(),
+    'target_model_1_state_dict': target_model_1.state_dict(),
+    'target_model_2_state_dict': target_model_2.state_dict(),
+    'total_reward': total_reward,
+    'high_total_reward': high_episode_reward,
+    'epoch': epoch
+}
+
+torch.save(final_data, 'final_epoch_data.pth')
+print("Final epoch data saved.")
+
+
+# Close the TensorBoard writer
+writer.close()

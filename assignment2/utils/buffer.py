@@ -22,7 +22,7 @@ class Replay_Buffer():
         idx = self.position % self.capacity
         
         self.states[idx] = torch.from_numpy(state)
-        self.actions[idx] = torch.tensor(action, dtype=torch.int64).view(-1)
+        self.actions[idx] = action.clone().view(-1)
         self.rewards[idx] = torch.tensor(reward, dtype=torch.float32).view(-1)
         self.next_states[idx] = torch.from_numpy(next_state)
         self.dones[idx] = torch.tensor(done, dtype=torch.float32).view(-1)
