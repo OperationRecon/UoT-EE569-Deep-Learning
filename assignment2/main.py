@@ -16,13 +16,13 @@ from torch.utils.tensorboard import SummaryWriter
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 torch.set_default_device(device)
 
-EPOCHS = 120
+EPOCHS = 800
 NUM_CARS = 2  # Supports key control of two cars, but can simulate as many as needed
 NUM_ACTIONS = 5
+early_stopping_patience = 120  # Stop training if no improvement for this many epochs
+learning_iterations = 8
 
-learning_iterations = 10
-
-POLICY = Epsilon_Greedy_Policy(epsilon=1, decay=0.98)
+POLICY = Epsilon_Greedy_Policy(epsilon=1, decay=0.992)
 
 model_1 = DQN().to(device)
 target_model_1 = DQN().to(device)
@@ -42,7 +42,7 @@ def discrete_to_action(action: list):
 # Explore with random actions
 def random_action():
     '''Takes random action with higher chance of it being forward movement to encourage track progress.'''
-    x =  torch.rand(NUM_CARS, NUM_ACTIONS)  * torch.tensor([1,1,1.2,1,1])[torch.newaxis, :]
+    x =  torch.rand(NUM_CARS, NUM_ACTIONS)  * torch.tensor([1,1,1,1,1])[torch.newaxis, :]
     return x
 
 env = gym.make("MultiCarRacing-v0", num_agents=2, direction='CCW',
@@ -59,8 +59,6 @@ observation_frames = deque(maxlen=4)  # stores only last 4 frames to account for
 prev_observation_frames = deque(maxlen=4)
 
 state1 = np.zeros((1, 4, 96, 96))
-
-early_stopping_patience = 32  # Stop training if no improvement for this many epochs
 
 # Lists to store performance metrics
 total_rewards = []
@@ -83,7 +81,7 @@ while epoch <= EPOCHS and not stopped:
     steps = 0
     restart = False
 
-    if epoch % max(EPOCHS // 10, 1) == 0:
+    if epoch % max(EPOCHS // 100, 1) == 0:
         # Initialize video recording
         video_filename = f'imgs/a2/epoch{epoch}.mp4'
         video_writer = imageio.get_writer(video_filename, fps=30)
@@ -91,12 +89,7 @@ while epoch <= EPOCHS and not stopped:
     while True:
 
         # use action, unless on grass, in which case try to return the car to the road
-        a = a
-
         s, r, done, info = env.step(a)
-
-        if steps > 800:
-            done = True
         
         f = np.array([cv2.cvtColor(x, cv2.COLOR_BGR2GRAY)[:, :, np.newaxis] for x in s[:]]) / 255 # convert to grayscale
 
@@ -118,7 +111,7 @@ while epoch <= EPOCHS and not stopped:
             state1 = torch.tensor(state1, dtype=torch.float32).to(device)
             state2 = torch.tensor(state2, dtype=torch.float32).to(device)
             
-            restart =  False not in [episode_reward[i] - high_episode_reward[i] < -40 for i in range(NUM_CARS)]
+            done =  False not in [episode_reward[i] - high_episode_reward[i] < -80 for i in range(NUM_CARS)]
 
             if steps > 4:
                 replay_buffer_car1.add(prev_state1.cpu().numpy(), torch.argmax(decision[0]), r[0], state1.cpu().numpy(), done or restart)
@@ -137,11 +130,11 @@ while epoch <= EPOCHS and not stopped:
             discrete_to_action(decision)
 
         if  done:
-            for _ in range(int(learning_iterations * min(1, 2 * epoch / EPOCHS + 1))):
+            for _ in range(learning_iterations):
                 loss_1 = model_1.learn(replay_buffer_car1, batch_size=128, target_model=target_model_1)
                 loss_2 = model_2.learn(replay_buffer_car2, batch_size=128, target_model=target_model_2)
-                writer.add_scalar('Loss/model_1', loss_1, epoch * steps + steps)
-                writer.add_scalar('Loss/model_2', loss_2, epoch * steps + steps)
+                writer.add_scalar('Loss/model_1', loss_1, epoch)
+                writer.add_scalar('Loss/model_2', loss_2, epoch)
 
         if restart:
             restart = False
@@ -158,7 +151,7 @@ while epoch <= EPOCHS and not stopped:
             print(f"Epoch {epoch} - Total Reward: {total_reward.mean()/steps}")
             break
 
-        if epoch % max(EPOCHS // 10, 1) == 0:
+        if epoch % max(EPOCHS // 100, 1) == 0:
             # Capture frame for recording
             frame = env.render(mode='rgb_array')
             frame = np.block([[frame[0]], [frame[1]]])
@@ -178,7 +171,7 @@ while epoch <= EPOCHS and not stopped:
         print("Early stopping triggered.")
         break
 
-    if epoch % 12 == 0 and epoch > 0:
+    if epoch % 40 == 0 and epoch > 0:
         model_1.update_target(target_model_1)
         model_2.update_target(target_model_2)
 
@@ -187,10 +180,10 @@ while epoch <= EPOCHS and not stopped:
     env.close()
 
 final_data = {
-    'model_1_state_dict': model_1.state_dict(),
-    'model_2_state_dict': model_2.state_dict(),
-    'target_model_1_state_dict': target_model_1.state_dict(),
-    'target_model_2_state_dict': target_model_2.state_dict(),
+    'model_1_state_dict': model_1.layers.state_dict(),
+    'model_2_state_dict': model_2.layers.state_dict(),
+    'target_model_1_state_dict': target_model_1.layers.state_dict(),
+    'target_model_2_state_dict': target_model_2.layers.state_dict(),
     'total_reward': total_reward,
     'high_total_reward': high_episode_reward,
     'epoch': epoch

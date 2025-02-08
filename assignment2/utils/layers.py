@@ -29,7 +29,7 @@ torch.set_default_device(device)
 
 class DQN(nn.Module):
     '''DQN model. Architecture is hardcoded for now.'''
-    def __init__(self, cnn_architecture=cnn_architecture, fcn_architecture=fcn_architecture, output_size=output_size, original=True, learning_rate=0.001):
+    def __init__(self, cnn_architecture=cnn_architecture, fcn_architecture=fcn_architecture, output_size=output_size, original=True, learning_rate=0.0008):
         super(DQN, self).__init__()
         
         layers = []
