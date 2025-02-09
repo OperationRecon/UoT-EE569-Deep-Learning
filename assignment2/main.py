@@ -17,16 +17,30 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 torch.set_default_device(device)
 
 EPOCHS = 800
+
+TARGET_UPDATE_FREQUENCY = 8
+
 NUM_CARS = 2  # Supports key control of two cars, but can simulate as many as needed
 NUM_ACTIONS = 5
-early_stopping_patience = 120  # Stop training if no improvement for this many epochs
-learning_iterations = 8
+
+SAMPLE_SIZE = 800
+BATCH_SIZE = 16
+BUFFER_SIZE = 12000
+
+OBSERVATION_CHANNELS = 4
+
+LEARNING_RATE = 0.00018
+
+REWARD_DROP_TOLERANCE = -60 # Determines how far can the reward drop before an episode is stopeed prematurely
+
+early_stopping_patience = 400  # Stop training if no improvement for this many epochs
+learning_iterations = 1
 
 POLICY = Epsilon_Greedy_Policy(epsilon=1, decay=0.992)
 
-model_1 = DQN().to(device)
+model_1 = DQN(learning_rate=LEARNING_RATE).to(device)
 target_model_1 = DQN().to(device)
-model_2 = DQN().to(device)
+model_2 = DQN(learning_rate=LEARNING_RATE).to(device)
 target_model_2 = DQN().to(device)
 
 a = np.zeros((NUM_CARS, 3))
@@ -42,21 +56,23 @@ def discrete_to_action(action: list):
 # Explore with random actions
 def random_action():
     '''Takes random action with higher chance of it being forward movement to encourage track progress.'''
-    x =  torch.rand(NUM_CARS, NUM_ACTIONS)  * torch.tensor([1,1,1,1,1])[torch.newaxis, :]
+    x =  torch.rand(NUM_CARS, NUM_ACTIONS)  * torch.tensor([1,1,1.2,1,1])[torch.newaxis, :]
     return x
 
 env = gym.make("MultiCarRacing-v0", num_agents=2, direction='CCW',
         use_random_direction=True, backwards_flag=True, h_ratio=0.25,
         use_ego_color=False, verbose=False)
+
 f = env.render()
 
 isopen = True
 stopped = False
-replay_buffer_car1 = Replay_Buffer(capacity=10000)
-replay_buffer_car2 = Replay_Buffer(capacity=10000)
 
-observation_frames = deque(maxlen=4)  # stores only last 4 frames to account for temporal info
-prev_observation_frames = deque(maxlen=4)
+replay_buffer_car1 = Replay_Buffer(capacity=BUFFER_SIZE)
+replay_buffer_car2 = Replay_Buffer(capacity=BUFFER_SIZE)
+
+observation_frames = deque(maxlen=OBSERVATION_CHANNELS)  # stores only last 4 frames to account for temporal info
+prev_observation_frames = deque(maxlen=OBSERVATION_CHANNELS)
 
 state1 = np.zeros((1, 4, 96, 96))
 
@@ -111,7 +127,7 @@ while epoch <= EPOCHS and not stopped:
             state1 = torch.tensor(state1, dtype=torch.float32).to(device)
             state2 = torch.tensor(state2, dtype=torch.float32).to(device)
             
-            done =  False not in [episode_reward[i] - high_episode_reward[i] < -80 for i in range(NUM_CARS)]
+            done =  False not in [episode_reward[i] - high_episode_reward[i] < -60 for i in range(NUM_CARS)]
 
             if steps > 4:
                 replay_buffer_car1.add(prev_state1.cpu().numpy(), torch.argmax(decision[0]), r[0], state1.cpu().numpy(), done or restart)
@@ -130,18 +146,12 @@ while epoch <= EPOCHS and not stopped:
             discrete_to_action(decision)
 
         if  done:
+            print(f'\r Learning...',end='', flush=True)
             for _ in range(learning_iterations):
-                loss_1 = model_1.learn(replay_buffer_car1, batch_size=128, target_model=target_model_1)
-                loss_2 = model_2.learn(replay_buffer_car2, batch_size=128, target_model=target_model_2)
+                loss_1 = model_1.learn(replay_buffer_car1, sample_size=SAMPLE_SIZE, batch_size=BATCH_SIZE, target_model=target_model_1)
+                loss_2 = model_2.learn(replay_buffer_car2, sample_size=SAMPLE_SIZE, batch_size=BATCH_SIZE, target_model=target_model_2)
                 writer.add_scalar('Loss/model_1', loss_1, epoch)
                 writer.add_scalar('Loss/model_2', loss_2, epoch)
-
-        if restart:
-            restart = False
-            print(f"\rStep: {steps} Episode_Reward {episode_reward}  reward: {r}", end='', flush=True)
-            high_episode_reward = np.zeros(NUM_CARS)
-            episode_reward = np.zeros(NUM_CARS)
-            env.reset()
 
         steps += 1
 
@@ -171,7 +181,7 @@ while epoch <= EPOCHS and not stopped:
         print("Early stopping triggered.")
         break
 
-    if epoch % 40 == 0 and epoch > 0:
+    if epoch % TARGET_UPDATE_FREQUENCY == 0 and epoch > 0:
         model_1.update_target(target_model_1)
         model_2.update_target(target_model_2)
 
