@@ -1,6 +1,5 @@
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
 import numpy as np
 from utils.buffer import Replay_Buffer
 
@@ -85,7 +84,10 @@ class DQN(nn.Module):
         
     
     def learn(self, buffer, sample_size, batch_size, target_model, discount=0.98):
-        # Sample a batch of experiences
+        '''Takes a sample from the buffer, 
+        then performs the forward and backwards pass that sample one batch at a time.'''
+
+        # Take a sample of experiences
         states, actions, rewards, next_states, dones = buffer.sample(sample_size)
         
         # Move tensors to the device
@@ -96,26 +98,30 @@ class DQN(nn.Module):
         dones = dones.to(device)
         
         total_size = states.shape[0]
+
         for i in range(0, total_size, batch_size):
+            # Take a ini-batch out of the sampled experiences
+
             s = states[i:min(i+batch_size, total_size)]
             a = actions[i:min(i+batch_size, total_size)]
             ns = next_states[i:min(i+batch_size, total_size)]
             r = rewards[i:min(i+batch_size, total_size)]
             d = dones[i:min(i+batch_size, total_size)]
 
-            # Compute predicted Q-values for current states
+            # predicted Q-values for current states
             q_values = self.forward(s)
             predicted_q_values = q_values.gather(1, a.unsqueeze(1)).squeeze(1)
 
-            # Compute target Q-values for next states
+            # target Q-values for next states
             with torch.no_grad():
                 next_q_values = target_model.forward(ns)
                 max_next_q_values, _ = next_q_values.max(dim=1)
                 target_q_values = r + (1 - d) * discount * max_next_q_values
             
-            # Compute loss
+            # loss
             loss = self.loss_function(predicted_q_values, target_q_values)
-            # Optimize the model
+
+            # Backwards pass
             self.optimizer.zero_grad()
             loss.backward()
             self.optimizer.step()

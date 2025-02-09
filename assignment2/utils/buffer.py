@@ -32,8 +32,7 @@ class Replay_Buffer():
             self.full = True
     
     def sample(self, batch_size):
-        '''Sample a batch of experiences from the buffer'''
-        '''Sample a batch of experiences from the buffer'''
+        '''Take a sample of experiences from the buffer.'''
         max_index = self.capacity if self.full else self.position
         
         # Adjust batch size if buffer has fewer samples than batch_size

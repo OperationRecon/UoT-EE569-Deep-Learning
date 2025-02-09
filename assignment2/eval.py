@@ -20,7 +20,7 @@ def discrete_to_action(action: list):
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 torch.set_default_device(device)
 # Load the saved data
-checkpoint = torch.load('final_epoch_data.pth', weights_only=False)
+checkpoint = torch.load('tweaked_reward.pth', weights_only=False)
 
 # Initialize the models
 model_1 = DQN().to(device)
@@ -49,8 +49,6 @@ def key_press(k, mod):
     if k==0xff1b: stopped = True # Terminate on esc.
     if k==key.ENTER: restart = True # Restart on Enter.
     print(restart)
-
-
 
 while isopen and not stopped:
     env.reset()

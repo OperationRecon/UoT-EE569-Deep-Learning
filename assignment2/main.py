@@ -1,7 +1,6 @@
 import numpy as np
 import cv2
 import torch
-from pyglet.window import key
 from collections import deque
 from utils.reward_calculation import calculate_reward
 from utils.policy import Epsilon_Greedy_Policy
@@ -29,14 +28,14 @@ BUFFER_SIZE = 12000
 
 OBSERVATION_CHANNELS = 4
 
-LEARNING_RATE = 0.00018
+LEARNING_RATE = 0.0001
 
-REWARD_DROP_TOLERANCE = -60 # Determines how far can the reward drop before an episode is stopeed prematurely
+REWARD_DROP_TOLERANCE = -40 # Determines how far can the reward drop before an episode is stopeed prematurely
 
 early_stopping_patience = 400  # Stop training if no improvement for this many epochs
 learning_iterations = 1
 
-POLICY = Epsilon_Greedy_Policy(epsilon=1, decay=0.992)
+POLICY = Epsilon_Greedy_Policy(epsilon=1, decay=0.994)
 
 model_1 = DQN(learning_rate=LEARNING_RATE).to(device)
 target_model_1 = DQN().to(device)
@@ -56,7 +55,7 @@ def discrete_to_action(action: list):
 # Explore with random actions
 def random_action():
     '''Takes random action with higher chance of it being forward movement to encourage track progress.'''
-    x =  torch.rand(NUM_CARS, NUM_ACTIONS)  * torch.tensor([1,1,1.2,1,1])[torch.newaxis, :]
+    x =  torch.rand(NUM_CARS, NUM_ACTIONS)  * torch.tensor([1,1,1.2,1,0.8])[torch.newaxis, :]
     return x
 
 env = gym.make("MultiCarRacing-v0", num_agents=2, direction='CCW',
@@ -104,10 +103,9 @@ while epoch <= EPOCHS and not stopped:
     
     while True:
 
-        # use action, unless on grass, in which case try to return the car to the road
         s, r, done, info = env.step(a)
         
-        f = np.array([cv2.cvtColor(x, cv2.COLOR_BGR2GRAY)[:, :, np.newaxis] for x in s[:]]) / 255 # convert to grayscale
+        f = np.array([cv2.cvtColor(x, cv2.COLOR_BGR2GRAY)[:, :, np.newaxis] for x in s[:]]) / 255 # convert to grayscale amd normalise
 
         observation_frames.append(f)
 
@@ -120,14 +118,16 @@ while epoch <= EPOCHS and not stopped:
             high_episode_reward[i] = max(high_episode_reward[i], episode_reward[i])
 
         if steps % 4 == 0 and steps > 0:
-
+            
+            # create the state from the kast four frames stacked on the channels axis
             state1 = np.concatenate([i[0] for i in observation_frames], axis=-1).reshape(1, 96, 96, 4).transpose((0, 3, 1, 2))
             state2 = np.concatenate([i[1] for i in observation_frames], axis=-1).reshape(1, 96, 96, 4).transpose((0, 3, 1, 2))
 
             state1 = torch.tensor(state1, dtype=torch.float32).to(device)
             state2 = torch.tensor(state2, dtype=torch.float32).to(device)
             
-            done =  False not in [episode_reward[i] - high_episode_reward[i] < -60 for i in range(NUM_CARS)]
+            # episode if reward starts dropping in order to not fill the replay buffer with useless experiences
+            done =  False not in [episode_reward[i] - high_episode_reward[i] < REWARD_DROP_TOLERANCE for i in range(NUM_CARS)]
 
             if steps > 4:
                 replay_buffer_car1.add(prev_state1.cpu().numpy(), torch.argmax(decision[0]), r[0], state1.cpu().numpy(), done or restart)
@@ -136,7 +136,8 @@ while epoch <= EPOCHS and not stopped:
             
             prev_state1 = state1.clone()
             prev_state2 = state2.clone()
-
+            
+            # Using e-greedy policy, if true then eploit, else explore
             if POLICY.select_action():
                 decision = [model_1.forward(state1), model_2.forward(state2)]
                 
@@ -146,6 +147,8 @@ while epoch <= EPOCHS and not stopped:
             discrete_to_action(decision)
 
         if  done:
+            # record diagnostics and proceed with learning
+
             print(f'\r Learning...',end='', flush=True)
             for _ in range(learning_iterations):
                 loss_1 = model_1.learn(replay_buffer_car1, sample_size=SAMPLE_SIZE, batch_size=BATCH_SIZE, target_model=target_model_1)
@@ -156,6 +159,8 @@ while epoch <= EPOCHS and not stopped:
         steps += 1
 
         if stopped or done:
+            # output reward for monitoring
+
             total_rewards.append(total_reward.mean()/steps)
             writer.add_scalar('Reward/total_reward', total_reward.mean()/steps, epoch)
             print(f"Epoch {epoch} - Total Reward: {total_reward.mean()/steps}")
@@ -163,6 +168,7 @@ while epoch <= EPOCHS and not stopped:
 
         if epoch % max(EPOCHS // 100, 1) == 0:
             # Capture frame for recording
+
             frame = env.render(mode='rgb_array')
             frame = np.block([[frame[0]], [frame[1]]])
             video_writer.append_data(frame)
@@ -171,6 +177,7 @@ while epoch <= EPOCHS and not stopped:
 
     video_writer.close()
 
+    # Ensure that there is some improvment with the model
     if total_reward.mean() > best_reward:
         best_reward = total_reward.mean()
         patience_counter = 0
@@ -178,6 +185,7 @@ while epoch <= EPOCHS and not stopped:
         patience_counter += 1
 
     if patience_counter > early_stopping_patience:
+        # No improvement in the model after too long, abort training
         print("Early stopping triggered.")
         break
 
@@ -189,6 +197,7 @@ while epoch <= EPOCHS and not stopped:
 
     env.close()
 
+# Record model parameters and metrics
 final_data = {
     'model_1_state_dict': model_1.layers.state_dict(),
     'model_2_state_dict': model_2.layers.state_dict(),
@@ -205,3 +214,4 @@ print("Final epoch data saved.")
 
 # Close the TensorBoard writer
 writer.close()
+
