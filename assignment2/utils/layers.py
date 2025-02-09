@@ -29,7 +29,7 @@ torch.set_default_device(device)
 
 class DQN(nn.Module):
     '''DQN model. Architecture is hardcoded for now.'''
-    def __init__(self, cnn_architecture=cnn_architecture, fcn_architecture=fcn_architecture, output_size=output_size, original=True, learning_rate=0.0008):
+    def __init__(self, cnn_architecture=cnn_architecture, fcn_architecture=fcn_architecture, output_size=output_size, original=True, learning_rate=0.0002):
         super(DQN, self).__init__()
         
         layers = []
@@ -84,9 +84,9 @@ class DQN(nn.Module):
         return self.layers(x)
         
     
-    def learn(self, buffer, batch_size, target_model, discount=0.9):
+    def learn(self, buffer, sample_size, batch_size, target_model, discount=0.98):
         # Sample a batch of experiences
-        states, actions, rewards, next_states, dones = buffer.sample(batch_size)
+        states, actions, rewards, next_states, dones = buffer.sample(sample_size)
         
         # Move tensors to the device
         states = states.to(device)
@@ -95,22 +95,30 @@ class DQN(nn.Module):
         next_states = next_states.to(device)
         dones = dones.to(device)
         
-        # Compute predicted Q-values for current states
-        q_values = self.forward(states)
-        predicted_q_values = q_values.gather(1, actions.unsqueeze(1)).squeeze(1)
-        
-        # Compute target Q-values for next states
-        with torch.no_grad():
-            next_q_values = target_model.forward(next_states)
-            max_next_q_values, _ = next_q_values.max(dim=1)
-            target_q_values = rewards + (1 - dones) * discount * max_next_q_values
-        
-        # Compute loss
-        loss = self.loss_function(predicted_q_values, target_q_values)
-        # Optimize the model
-        self.optimizer.zero_grad()
-        loss.backward()
-        self.optimizer.step()
+        total_size = states.shape[0]
+        for i in range(0, total_size, batch_size):
+            s = states[i:min(i+batch_size, total_size)]
+            a = actions[i:min(i+batch_size, total_size)]
+            ns = next_states[i:min(i+batch_size, total_size)]
+            r = rewards[i:min(i+batch_size, total_size)]
+            d = dones[i:min(i+batch_size, total_size)]
+
+            # Compute predicted Q-values for current states
+            q_values = self.forward(s)
+            predicted_q_values = q_values.gather(1, a.unsqueeze(1)).squeeze(1)
+
+            # Compute target Q-values for next states
+            with torch.no_grad():
+                next_q_values = target_model.forward(ns)
+                max_next_q_values, _ = next_q_values.max(dim=1)
+                target_q_values = r + (1 - d) * discount * max_next_q_values
+            
+            # Compute loss
+            loss = self.loss_function(predicted_q_values, target_q_values)
+            # Optimize the model
+            self.optimizer.zero_grad()
+            loss.backward()
+            self.optimizer.step()
         
         return loss.item()
 
