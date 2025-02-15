@@ -9,16 +9,16 @@ from utils.buffer import Replay_Buffer
 
 cnn_architecture = [
     [4, 32, 16, 4, 8],    # Conv2d: in_channels=4, out_channels=32, kernel_size=16, stride=8
-    [2,2],
-    [32, 64, 8, 2, 4],
-    [2,2],
+    [2,2],                # MaxPool2d: kernel_size=2, stride=2
+    [32, 64, 8, 2, 4],    # Conv2d: in_channels=32, out_channels=64, kernel_size=8, stride=4  
+    [2,2],                # MaxPool2d: kernel_size=2, stride=2
     [64, 128, 4, 1, 2],   # Conv2d: in_channels=32, out_channels=64, kernel_size=4, stride=2
-    [2,2],
-    [128, 128, 2, 1, 1],
-    [2,2], # MaxPool2d: kernel_size=2, stride=2
+    [2,2],                # MaxPool2d: kernel_size=2, stride=2
+    [128, 128, 2, 1, 1],  # Conv2d: in_channels=32, out_channels=64, kernel_size=2, stride=1
+    [2,2],                # MaxPool2d: kernel_size=2, stride=2
 ]
 
-fcn_architecture = [128, 512, 128]
+fcn_architecture = [128, 512, 128] # Fully connected layers
 
 output_size = 5 # number of actions
 
@@ -52,7 +52,6 @@ class DQN(nn.Module):
         
         # Add the output layer
         layers.append(nn.Linear(fcn_architecture[-1], output_size))
-        layers.append(nn.ReLU(inplace=True))
 
         self.layers = nn.Sequential(*layers)
         

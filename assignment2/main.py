@@ -17,7 +17,7 @@ torch.set_default_device(device)
 
 EPOCHS = 800
 
-TARGET_UPDATE_FREQUENCY = 8
+TARGET_UPDATE_FREQUENCY = 14
 
 NUM_CARS = 2  # Supports key control of two cars, but can simulate as many as needed
 NUM_ACTIONS = 5
@@ -32,7 +32,7 @@ LEARNING_RATE = 0.0001
 
 REWARD_DROP_TOLERANCE = -40 # Determines how far can the reward drop before an episode is stopeed prematurely
 
-early_stopping_patience = 400  # Stop training if no improvement for this many epochs
+early_stopping_patience = 200  # Stop training if no improvement for this many epochs
 learning_iterations = 1
 
 POLICY = Epsilon_Greedy_Policy(epsilon=1, decay=0.994)
