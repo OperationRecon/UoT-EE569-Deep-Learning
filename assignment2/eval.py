@@ -19,6 +19,8 @@ def discrete_to_action(action: list):
 # moves model to GPU if available
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 torch.set_default_device(device)
+
+# Enter the path of the saved model
 # Load the saved data
 checkpoint = torch.load('tweaked_reward.pth', weights_only=False)
 
